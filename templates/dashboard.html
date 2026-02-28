@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impermanent Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+/* === RESET === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+/* === DESIGN TOKENS — WHITE + VIOLET === */
+:root, [data-theme="light"] {
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-bg: #FFFFFF;
+  --color-surface: #F8F6FC;
+  --color-surface-2: #F3F0FA;
+  --color-surface-offset: #EAE5F5;
+  --color-divider: rgba(88, 50, 168, 0.10);
+  --color-border: rgba(88, 50, 168, 0.12);
+  --color-text: #1E1333;
+  --color-text-muted: #4A3D6B;
+  --color-text-faint: #7C6BAF;
+  --color-primary: #7C4DFF;
+  --color-primary-hover: #5E35B1;
+  --color-primary-active: #4527A0;
+  --color-dark-navy: #1A0E33;
+  --color-light-accent: #EDE7F6;
+  --shadow-sm: 0 1px 3px rgba(88,50,168,0.06);
+  --shadow-md: 0 4px 12px rgba(88,50,168,0.10);
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --table-row-alt: rgba(124, 77, 255, 0.03);
+  --table-best: rgba(124, 77, 255, 0.10);
+}
+
+[data-theme="dark"] {
+  --color-bg: #110D1E;
+  --color-surface: #1A1330;
+  --color-surface-2: #231A40;
+  --color-surface-offset: #2E2250;
+  --color-divider: rgba(206, 190, 255, 0.10);
+  --color-border: rgba(206, 190, 255, 0.12);
+  --color-text: #E8E0F7;
+  --color-text-muted: #CEBEFF;
+  --color-text-faint: #9E8CCC;
+  --color-primary: #B388FF;
+  --color-primary-hover: #D1B3FF;
+  --color-primary-active: #E8E0F7;
+  --color-light-accent: #2E2250;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.40);
+  --table-row-alt: rgba(179, 136, 255, 0.04);
+  --table-best: rgba(179, 136, 255, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg: #110D1E; --color-surface: #1A1330; --color-surface-2: #231A40;
+    --color-surface-offset: #2E2250; --color-divider: rgba(206,190,255,0.10);
+    --color-border: rgba(206,190,255,0.12); --color-text: #E8E0F7;
+    --color-text-muted: #CEBEFF; --color-text-faint: #9E8CCC;
+    --color-primary: #B388FF; --color-primary-hover: #D1B3FF;
+    --color-primary-active: #E8E0F7; --color-light-accent: #2E2250;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.30); --shadow-md: 0 4px 12px rgba(0,0,0,0.40);
+    --table-row-alt: rgba(179,136,255,0.04); --table-best: rgba(179,136,255,0.15);
+  }
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  font-size: 14px;
+  min-height: 100dvh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+/* === HEADER === */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 40px 0 32px;
+  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: 32px;
+}
+.header-left h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.header-left p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  max-width: 100%;
+}
+.theme-toggle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-interactive);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.theme-toggle:hover { background: var(--color-surface-offset); }
+
+/* === SUMMARY CARDS === */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.summary-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  transition: box-shadow var(--transition-interactive);
+}
+.summary-card:hover { box-shadow: var(--shadow-md); }
+.summary-card .medal { font-size: 32px; line-height: 1; }
+.summary-card .model-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 8px;
+  color: var(--color-text);
+}
+.summary-card .metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+.summary-card .metric-box {
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.summary-card .metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+.summary-card .metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  margin-top: 2px;
+}
+
+/* === SECTION TITLES === */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+.section-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* === CONTROLS === */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.control-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+.pill-group {
+  display: flex;
+  gap: 4px;
+}
+.pill {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-interactive);
+  white-space: nowrap;
+}
+.pill:hover { background: var(--color-surface); }
+.pill.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+select.control-select {
+  padding: 6px 32px 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237C4DFF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color var(--transition-interactive);
+}
+select.control-select:hover { border-color: var(--color-primary); }
+select.control-select:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* === CHART SECTION === */
+.chart-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 40px;
+  position: relative;
+}
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 420px;
+}
+.chart-note {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* === TABLE === */
+.table-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.table-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  padding: 12px 16px;
+  text-align: right;
+  border-bottom: 1px solid var(--color-divider);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-interactive);
+}
+thead th:hover { color: var(--color-primary); }
+thead th:first-child { text-align: left; }
+thead th .sort-arrow {
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.4;
+  font-size: 10px;
+}
+thead th.sorted .sort-arrow { opacity: 1; color: var(--color-primary); }
+tbody td {
+  padding: 10px 16px;
+  font-size: 13px;
+  text-align: right;
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-text-muted);
+}
+tbody td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+tbody tr:nth-child(even) { background: var(--table-row-alt); }
+tbody tr:hover { background: rgba(124, 77, 255, 0.06); }
+td.best-value {
+  background: var(--table-best);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* === CHAMPIONSHIP STANDINGS TABLE === */
+.standings-section {
+  margin-bottom: 40px;
+}
+.standings-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.standings-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.standings-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-divider);
+  white-space: nowrap;
+}
+.standings-table thead th:nth-child(n+3) {
+  text-align: right;
+}
+.standings-table tbody td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-text-muted);
+}
+.standings-table tbody td:first-child {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text-faint);
+  text-align: center;
+  width: 48px;
+}
+.standings-table tbody td:nth-child(2) {
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.standings-table tbody td:nth-child(n+3) {
+  text-align: right;
+}
+.standings-table tbody tr:nth-child(even) {
+  background: var(--table-row-alt);
+}
+.standings-table tbody tr:hover {
+  background: rgba(124, 77, 255, 0.06);
+}
+.standings-table .rank-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+}
+.standings-table .rank-1 .rank-medal {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+}
+.standings-table .rank-2 .rank-medal {
+  background: linear-gradient(135deg, #E0E0E0, #9E9E9E);
+  color: #37474F;
+}
+.standings-table .rank-3 .rank-medal {
+  background: linear-gradient(135deg, #FFAB40, #E65100);
+  color: #3E2723;
+}
+.standings-table .pts-bar-cell {
+  width: 200px;
+  min-width: 140px;
+}
+.pts-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pts-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--color-surface-offset);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.pts-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pts-bar-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  min-width: 36px;
+  text-align: right;
+}
+.standings-table .trend-cell {
+  font-size: 12px;
+  font-weight: 600;
+}
+.trend-up { color: #2E7D32; }
+.trend-down { color: #C62828; }
+.trend-flat { color: var(--color-text-faint); }
+[data-theme="dark"] .trend-up { color: #81C784; }
+[data-theme="dark"] .trend-down { color: #EF9A9A; }
+
+/* === HEATMAP === */
+.heatmap-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+.heatmap-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 4px;
+}
+.heatmap-table {
+  border-collapse: separate;
+  border-spacing: 3px;
+  width: 100%;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.heatmap-table th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-faint);
+  padding: 8px 10px;
+  white-space: nowrap;
+  text-align: center;
+}
+.heatmap-table th:first-child {
+  text-align: left;
+  min-width: 140px;
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+  z-index: 2;
+}
+.heatmap-table td {
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: transform 120ms ease;
+  min-width: 56px;
+}
+.heatmap-table td:first-child {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent !important;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  padding-left: 10px;
+}
+[data-theme="light"] .heatmap-table th:first-child,
+[data-theme="light"] .heatmap-table td:first-child {
+  background: var(--color-surface) !important;
+}
+[data-theme="dark"] .heatmap-table th:first-child,
+[data-theme="dark"] .heatmap-table td:first-child {
+  background: var(--color-surface) !important;
+}
+.heatmap-table td:hover:not(:first-child) {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.heatmap-table .model-rank-cell {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .header { flex-direction: column; gap: 12px; padding: 24px 0 20px; }
+  .header h1 { font-size: 24px; }
+  .summary-row { grid-template-columns: 1fr; }
+  .controls { gap: 8px; }
+  .control-group { flex-wrap: wrap; }
+  .chart-container { height: 300px; }
+  .container { padding: 0 16px 60px; }
+  .summary-card { padding: 16px; }
+  .summary-card .model-name { font-size: 16px; }
+  .pill { padding: 5px 10px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .pill-group { flex-wrap: wrap; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1>Impermanent Leaderboard</h1>
+      <p>Live time-series forecasting benchmark on GitHub activity signals</p>
+    </div>
+    <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- SUMMARY CARDS -->
+  <div class="summary-row" id="summaryCards"></div>
+
+  <!-- CHART SECTION -->
+  <h2 class="section-title">Model Performance Over Time</h2>
+
+  <div class="controls" id="chartControls">
+    <div class="control-group">
+      <span class="control-label">Metric</span>
+      <div class="pill-group" id="metricToggle">
+        <button class="pill active" data-value="mase">MASE</button>
+        <button class="pill" data-value="crps">SCALED_CRPS</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">View</span>
+      <div class="pill-group" id="viewToggle">
+        <button class="pill active" data-value="rank">Avg Rank</button>
+        <button class="pill" data-value="raw">Raw Value</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Dataset</span>
+      <select class="control-select" id="subdatasetFilter">
+        <option value="all">All Datasets</option>
+        <option value="issues_opened">issues_opened</option>
+        <option value="prs_opened">prs_opened</option>
+        <option value="pushes">pushes</option>
+        <option value="stars">stars</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Frequency</span>
+      <select class="control-select" id="frequencyFilter">
+        <option value="all">All Frequencies</option>
+        <option value="daily">daily</option>
+        <option value="hourly">hourly</option>
+        <option value="monthly">monthly</option>
+        <option value="weekly">weekly</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="chart-wrapper">
+    <div class="chart-container">
+      <canvas id="mainChart"></canvas>
+    </div>
+    <p class="chart-note" id="chartNote">Click legend items to show/hide models. Hover for details.</p>
+  </div>
+
+  <!-- CHAMPIONSHIP POINTS CHART -->
+  <h2 class="section-title">Championship Points Race</h2>
+  <p class="section-subtitle">Points awarded per week: 12 pts for 1st, 11 for 2nd, ... 1 for 12th. Cumulative total shows who leads the overall race.</p>
+  <div class="controls" id="champControls">
+    <div class="control-group">
+      <span class="control-label">Metric</span>
+      <div class="pill-group" id="champMetricToggle">
+        <button class="pill active" data-value="mase">MASE</button>
+        <button class="pill" data-value="crps">SCALED_CRPS</button>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <div class="chart-container">
+      <canvas id="champChart"></canvas>
+    </div>
+    <p class="chart-note">Steeper lines = faster point accumulation = more consistent top finishes.</p>
+  </div>
+
+  <!-- CHAMPIONSHIP STANDINGS TABLE -->
+  <div class="standings-section">
+    <h2 class="section-title">Championship Standings</h2>
+    <p class="section-subtitle">Final leaderboard based on cumulative championship points. Points bar shows relative standing.</p>
+    <div class="standings-card">
+      <table class="standings-table" id="standingsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Model</th>
+            <th>Total Pts</th>
+            <th>Avg Rank</th>
+            <th>Best Wk</th>
+            <th>Worst Wk</th>
+            <th class="pts-bar-cell">Points</th>
+          </tr>
+        </thead>
+        <tbody id="standingsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RANK HEATMAP -->
+  <h2 class="section-title">Rank Stability Heatmap</h2>
+  <p class="section-subtitle">Average rank per model per week. Deeper violet = better rank. Spot consistency vs. volatility at a glance.</p>
+  <div class="controls" id="heatmapControls">
+    <div class="control-group">
+      <span class="control-label">Metric</span>
+      <div class="pill-group" id="heatmapMetricToggle">
+        <button class="pill active" data-value="mase">MASE</button>
+        <button class="pill" data-value="crps">SCALED_CRPS</button>
+      </div>
+    </div>
+  </div>
+  <div class="heatmap-wrapper" id="heatmapWrapper">
+    <div class="heatmap-scroll">
+      <table class="heatmap-table" id="heatmapTable"></table>
+    </div>
+  </div>
+
+  <!-- TABLE SECTION -->
+  <div class="table-wrapper">
+    <div class="table-header-bar">
+      <h2 class="section-title" style="margin-bottom:0">Detailed Results</h2>
+      <div class="control-group">
+        <span class="control-label" style="font-size:11px">Latest cutoff per filter</span>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="resultsTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===========================================================================
+// DATA (embedded)
+// ===========================================================================
+/* __DATA_PLACEHOLDER__ */
+
+const CHART_COLORS = [
+  '#7C4DFF', // violet
+  '#E040FB', // magenta
+  '#1B5E20', // forest green
+  '#FF6D00', // vivid orange
+  '#D32F6B', // rose
+  '#00897B', // teal
+  '#4527A0', // deep purple
+  '#F9A825', // amber
+  '#0277BD', // blue
+  '#6D4C41', // brown
+  '#B388FF', // light violet
+  '#E65100'  // burnt orange
+];
+function getColor(i) { return CHART_COLORS[i % CHART_COLORS.length]; }
+
+// ===========================================================================
+// STATE
+// ===========================================================================
+let state = {
+  metric: 'mase',
+  view: 'rank',
+  subdataset: 'all',
+  frequency: 'all',
+  sortCol: null,
+  sortDir: 'asc'
+};
+
+// ===========================================================================
+// SUMMARY CARDS
+// ===========================================================================
+function renderSummaryCards() {
+  const medals = ['🥇', '🥈', '🥉'];
+  const top3 = DATA.summary.slice(0, 3);
+  const html = top3.map((m, i) => {
+    const name = m.model.replace(/^[🥇🥈🥉]\s*/, '');
+    return `
+    <div class="summary-card">
+      <div class="medal">${medals[i]}</div>
+      <div class="model-name">${name}</div>
+      <div class="metrics">
+        <div class="metric-box">
+          <div class="metric-label">Avg MASE</div>
+          <div class="metric-value">${m.avg_mase.toFixed(3)}</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Avg CRPS</div>
+          <div class="metric-value">${m.avg_crps.toFixed(3)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('summaryCards').innerHTML = html;
+}
+
+// ===========================================================================
+// CHART COMPUTATION
+// ===========================================================================
+function filterData(metricKey) {
+  const src = metricKey === 'mase' ? DATA.mase : DATA.crps;
+  return src.filter(r => {
+    if (state.subdataset !== 'all' && r.subdataset !== state.subdataset) return false;
+    if (state.frequency !== 'all' && r.frequency !== state.frequency) return false;
+    return true;
+  });
+}
+
+function computeRankOverTime(rows) {
+  // Group by cutoff → within each (subdataset, frequency, cutoff), rank models
+  // Then average ranks across groups per (model, cutoff)
+  const grouped = {};
+  rows.forEach(r => {
+    const key = r.cutoff;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  });
+
+  const result = {}; // model → [{cutoff, rank}]
+  DATA.models.forEach(m => { result[m] = {}; });
+
+  Object.keys(grouped).forEach(cutoff => {
+    const groupRows = grouped[cutoff];
+    // For each row (subdataset+frequency combo), rank models
+    const rankAccum = {};
+    const rankCount = {};
+    DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
+
+    groupRows.forEach(row => {
+      const vals = DATA.models.map(m => ({ model: m, val: row.values[m] }))
+        .filter(x => x.val !== null && x.val !== undefined);
+      // Sort ascending (lower is better)
+      vals.sort((a, b) => a.val - b.val);
+      // Assign ranks (1-based, no ties handling for simplicity)
+      vals.forEach((x, idx) => {
+        rankAccum[x.model] += (idx + 1);
+        rankCount[x.model] += 1;
+      });
+    });
+
+    DATA.models.forEach(m => {
+      if (rankCount[m] > 0) {
+        result[m][cutoff] = rankAccum[m] / rankCount[m];
+      }
+    });
+  });
+
+  return result;
+}
+
+function computeRawOverTime(rows) {
+  // Average raw values across (subdataset, frequency) for each (model, cutoff)
+  const grouped = {};
+  rows.forEach(r => {
+    const key = r.cutoff;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  });
+
+  const result = {};
+  DATA.models.forEach(m => { result[m] = {}; });
+
+  Object.keys(grouped).forEach(cutoff => {
+    const groupRows = grouped[cutoff];
+    const sum = {};
+    const count = {};
+    DATA.models.forEach(m => { sum[m] = 0; count[m] = 0; });
+
+    groupRows.forEach(row => {
+      DATA.models.forEach(m => {
+        const v = row.values[m];
+        if (v !== null && v !== undefined) {
+          sum[m] += v;
+          count[m] += 1;
+        }
+      });
+    });
+
+    DATA.models.forEach(m => {
+      if (count[m] > 0) {
+        result[m][cutoff] = sum[m] / count[m];
+      }
+    });
+  });
+
+  return result;
+}
+
+// For CRPS raw values, cap at 95th percentile to handle outliers
+function capValues(modelData, useLog) {
+  // Collect all values
+  const allVals = [];
+  Object.values(modelData).forEach(cutoffMap => {
+    Object.values(cutoffMap).forEach(v => {
+      if (v !== undefined && v > 0) allVals.push(v);
+    });
+  });
+  allVals.sort((a, b) => a - b);
+  const p95 = allVals[Math.floor(allVals.length * 0.95)] || Infinity;
+  const cap = Math.max(p95 * 1.1, 10); // At least 10
+
+  const capped = {};
+  Object.keys(modelData).forEach(m => {
+    capped[m] = {};
+    Object.keys(modelData[m]).forEach(cutoff => {
+      const v = modelData[m][cutoff];
+      capped[m][cutoff] = Math.min(v, cap);
+    });
+  });
+  return { data: capped, cap };
+}
+
+// ===========================================================================
+// CHART RENDERING
+// ===========================================================================
+let chartInstance = null;
+
+function formatCutoff(c) {
+  // "2026-01-04-00" → "Jan 4"
+  const parts = c.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(parts[1])-1] + ' ' + parseInt(parts[2]);
+}
+
+function renderChart() {
+  const rows = filterData(state.metric);
+  
+  // Get cutoffs that appear in filtered data
+  const cutoffSet = new Set(rows.map(r => r.cutoff));
+  const cutoffs = DATA.cutoffs.filter(c => cutoffSet.has(c));
+
+  let modelData;
+  let isRank = state.view === 'rank';
+  let yLabel, noteText;
+  let reverseY = false;
+  let cappedInfo = null;
+
+  if (isRank) {
+    modelData = computeRankOverTime(rows);
+    yLabel = 'Average Rank';
+    noteText = 'Lower rank is better (1 = best). Click legend items to show/hide models.';
+    reverseY = true;
+  } else {
+    modelData = computeRawOverTime(rows);
+    yLabel = state.metric === 'mase' ? 'Average MASE' : 'Average SCALED_CRPS';
+    
+    // For CRPS, check if values are extreme
+    if (state.metric === 'crps') {
+      const allVals = [];
+      Object.values(modelData).forEach(m => Object.values(m).forEach(v => { if (v > 0) allVals.push(v); }));
+      const maxVal = Math.max(...allVals);
+      if (maxVal > 100) {
+        cappedInfo = capValues(modelData, false);
+        modelData = cappedInfo.data;
+        noteText = `Values capped at ~${cappedInfo.cap.toExponential(1)} (95th percentile) to handle outliers. Click legend to toggle models.`;
+      } else {
+        noteText = 'Lower is better. Click legend items to show/hide models.';
+      }
+    } else {
+      noteText = 'Lower is better. Click legend items to show/hide models.';
+    }
+  }
+
+  const datasets = DATA.models.map((m, i) => {
+    const color = getColor(i);
+    const points = cutoffs.map(c => modelData[m][c] !== undefined ? modelData[m][c] : null);
+    return {
+      label: m,
+      data: points,
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: color,
+      tension: 0.3,
+      spanGaps: true,
+      hidden: false
+    };
+  });
+
+  const labels = cutoffs.map(formatCutoff);
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(206,190,255,0.08)' : 'rgba(88,50,168,0.06)';
+  const textColor = isDark ? '#CEBEFF' : '#4A3D6B';
+
+  if (chartInstance) chartInstance.destroy();
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: textColor,
+            font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 16,
+            boxWidth: 8,
+            boxHeight: 8
+          }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#231A40' : '#FFFFFF',
+          titleColor: isDark ? '#E8E0F7' : '#1E1333',
+          bodyColor: isDark ? '#CEBEFF' : '#4A3D6B',
+          borderColor: isDark ? 'rgba(206,190,255,0.15)' : 'rgba(88,50,168,0.12)',
+          borderWidth: 1,
+          titleFont: { family: "'Inter', sans-serif", size: 13, weight: '600' },
+          bodyFont: { family: "'Inter', sans-serif", size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          boxPadding: 4,
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.parsed.y;
+              if (val === null || val === undefined) return ctx.dataset.label + ': N/A';
+              return ctx.dataset.label + ': ' + (isRank ? val.toFixed(2) : val.toFixed(3));
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor, drawBorder: false },
+          ticks: {
+            color: textColor,
+            font: { family: "'Inter', sans-serif", size: 11 },
+            maxRotation: 45
+          }
+        },
+        y: {
+          reverse: reverseY,
+          grid: { color: gridColor, drawBorder: false },
+          ticks: {
+            color: textColor,
+            font: { family: "'Inter', sans-serif", size: 11 },
+            callback: function(v) {
+              if (isRank) return v;
+              if (v >= 1000) return v.toExponential(0);
+              return v.toFixed(v < 1 ? 2 : 1);
+            }
+          },
+          title: {
+            display: true,
+            text: yLabel,
+            color: textColor,
+            font: { family: "'Inter', sans-serif", size: 12, weight: '600' }
+          }
+        }
+      }
+    }
+  });
+
+  document.getElementById('chartNote').textContent = noteText;
+}
+
+// ===========================================================================
+// TABLE RENDERING
+// ===========================================================================
+function renderTable() {
+  const rows = filterData(state.metric);
+  if (rows.length === 0) {
+    document.getElementById('tableHead').innerHTML = '<tr><th>No data</th></tr>';
+    document.getElementById('tableBody').innerHTML = '';
+    return;
+  }
+
+  // Find the latest cutoff per (subdataset, frequency) and show all
+  const cutoffs = [...new Set(rows.map(r => r.cutoff))].sort();
+  const latestCutoff = cutoffs[cutoffs.length - 1];
+  const latestRows = rows.filter(r => r.cutoff === latestCutoff);
+
+  // Build header
+  let headHtml = '<tr><th>Dataset / Freq</th>';
+  DATA.models.forEach((m, i) => {
+    const arrow = state.sortCol === m ? (state.sortDir === 'asc' ? '▲' : '▼') : '▲';
+    const sorted = state.sortCol === m ? ' sorted' : '';
+    headHtml += `<th class="${sorted}" data-model="${m}">${m} <span class="sort-arrow">${arrow}</span></th>`;
+  });
+  headHtml += '</tr>';
+  document.getElementById('tableHead').innerHTML = headHtml;
+
+  // Compute display rows
+  let displayRows = latestRows.map(r => {
+    const label = r.subdataset + ' / ' + r.frequency;
+    const vals = {};
+    DATA.models.forEach(m => { vals[m] = r.values[m]; });
+    return { label, vals };
+  });
+
+  // Sort
+  if (state.sortCol) {
+    displayRows.sort((a, b) => {
+      const va = a.vals[state.sortCol];
+      const vb = b.vals[state.sortCol];
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return state.sortDir === 'asc' ? va - vb : vb - va;
+    });
+  }
+
+  // Render rows
+  let bodyHtml = '';
+  displayRows.forEach(r => {
+    // Find best (lowest non-null) value
+    const numVals = DATA.models.map(m => r.vals[m]).filter(v => v !== null && v !== undefined);
+    const bestVal = Math.min(...numVals);
+
+    bodyHtml += '<tr>';
+    bodyHtml += `<td>${r.label}</td>`;
+    DATA.models.forEach(m => {
+      const v = r.vals[m];
+      let cls = '';
+      if (v !== null && v !== undefined && v === bestVal) cls = ' class="best-value"';
+      bodyHtml += `<td${cls}>${v !== null && v !== undefined ? (v >= 1e6 ? v.toExponential(1) : v < 0.001 ? v.toExponential(2) : v.toFixed(3)) : '—'}</td>`;
+    });
+    bodyHtml += '</tr>';
+  });
+  document.getElementById('tableBody').innerHTML = bodyHtml;
+
+  // Attach sort handlers
+  document.querySelectorAll('#tableHead th[data-model]').forEach(th => {
+    th.addEventListener('click', () => {
+      const m = th.getAttribute('data-model');
+      if (state.sortCol === m) {
+        state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sortCol = m;
+        state.sortDir = 'asc';
+      }
+      renderTable();
+    });
+  });
+}
+
+// ===========================================================================
+// CHAMPIONSHIP POINTS CHART
+// ===========================================================================
+let champChartInstance = null;
+let champMetric = 'mase';
+
+function computeChampionshipPoints(metricKey) {
+  const src = metricKey === 'mase' ? DATA.mase : DATA.crps;
+  const nModels = DATA.models.length;
+
+  // Group all rows by cutoff
+  const byCutoff = {};
+  src.forEach(r => {
+    if (!byCutoff[r.cutoff]) byCutoff[r.cutoff] = [];
+    byCutoff[r.cutoff].push(r);
+  });
+
+  // For each cutoff, compute average rank across all (subdataset, frequency) groups
+  const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
+  // weeklyPoints: model → [points per cutoff]
+  const cumPoints = {};
+  DATA.models.forEach(m => { cumPoints[m] = []; });
+
+  let running = {};
+  DATA.models.forEach(m => { running[m] = 0; });
+
+  cutoffs.forEach(cutoff => {
+    const groupRows = byCutoff[cutoff];
+    // Compute avg rank for this cutoff
+    const rankAccum = {};
+    const rankCount = {};
+    DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
+
+    groupRows.forEach(row => {
+      const vals = DATA.models.map(m => ({ model: m, val: row.values[m] }))
+        .filter(x => x.val !== null && x.val !== undefined);
+      vals.sort((a, b) => a.val - b.val);
+      vals.forEach((x, idx) => {
+        rankAccum[x.model] += (idx + 1);
+        rankCount[x.model] += 1;
+      });
+    });
+
+    // Average rank → points = nModels + 1 - avgRank
+    const avgRanks = {};
+    DATA.models.forEach(m => {
+      avgRanks[m] = rankCount[m] > 0 ? rankAccum[m] / rankCount[m] : nModels;
+    });
+
+    // Re-rank the average ranks to assign clean 1-12 positions
+    const sorted = DATA.models.slice().sort((a, b) => avgRanks[a] - avgRanks[b]);
+    sorted.forEach((m, idx) => {
+      const pts = nModels - idx; // 12 for 1st, 11 for 2nd, etc.
+      running[m] += pts;
+      cumPoints[m].push(running[m]);
+    });
+  });
+
+  return { cutoffs, cumPoints };
+}
+
+function renderChampChart() {
+  const { cutoffs, cumPoints } = computeChampionshipPoints(champMetric);
+  const labels = cutoffs.map(formatCutoff);
+
+  // Sort models by final points (descending) for legend order
+  const finalPoints = {};
+  DATA.models.forEach(m => {
+    const pts = cumPoints[m];
+    finalPoints[m] = pts[pts.length - 1] || 0;
+  });
+  const sortedModels = DATA.models.slice().sort((a, b) => finalPoints[b] - finalPoints[a]);
+
+  const datasets = sortedModels.map((m, i) => {
+    const origIdx = DATA.models.indexOf(m);
+    const color = getColor(origIdx);
+    return {
+      label: `${m} (${finalPoints[m]} pts)`,
+      data: cumPoints[m],
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: color,
+      tension: 0.3,
+      spanGaps: true
+    };
+  });
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(206,190,255,0.08)' : 'rgba(88,50,168,0.06)';
+  const textColor = isDark ? '#CEBEFF' : '#4A3D6B';
+
+  if (champChartInstance) champChartInstance.destroy();
+
+  const ctx = document.getElementById('champChart').getContext('2d');
+  champChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: textColor,
+            font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
+            usePointStyle: true, pointStyle: 'circle',
+            padding: 16, boxWidth: 8, boxHeight: 8
+          }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#231A40' : '#FFFFFF',
+          titleColor: isDark ? '#E8E0F7' : '#1E1333',
+          bodyColor: isDark ? '#CEBEFF' : '#4A3D6B',
+          borderColor: isDark ? 'rgba(206,190,255,0.15)' : 'rgba(88,50,168,0.12)',
+          borderWidth: 1,
+          titleFont: { family: "'Inter', sans-serif", size: 13, weight: '600' },
+          bodyFont: { family: "'Inter', sans-serif", size: 12 },
+          padding: 12, cornerRadius: 8, boxPadding: 4
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor, drawBorder: false },
+          ticks: { color: textColor, font: { family: "'Inter', sans-serif", size: 11 }, maxRotation: 45 }
+        },
+        y: {
+          grid: { color: gridColor, drawBorder: false },
+          ticks: { color: textColor, font: { family: "'Inter', sans-serif", size: 11 } },
+          title: {
+            display: true, text: 'Cumulative Points',
+            color: textColor, font: { family: "'Inter', sans-serif", size: 12, weight: '600' }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ===========================================================================
+// CHAMPIONSHIP STANDINGS TABLE
+// ===========================================================================
+function renderChampStandings() {
+  const { cutoffs, cumPoints } = computeChampionshipPoints(champMetric);
+  const nModels = DATA.models.length;
+  const nCutoffs = cutoffs.length;
+
+  // Compute per-model stats
+  const stats = DATA.models.map(m => {
+    const pts = cumPoints[m];
+    const totalPts = pts[nCutoffs - 1] || 0;
+    // Per-week points (not cumulative)
+    const weeklyPts = pts.map((p, i) => i === 0 ? p : p - pts[i - 1]);
+    const bestWeek = Math.max(...weeklyPts);
+    const worstWeek = Math.min(...weeklyPts);
+    // Average rank: points per week = nModels + 1 - rank, so rank = nModels + 1 - avgPtsPerWeek
+    const avgPtsPerWeek = totalPts / nCutoffs;
+    const avgRank = nModels + 1 - avgPtsPerWeek;
+    return { model: m, totalPts, avgRank, bestWeek, worstWeek };
+  });
+
+  // Sort by total points descending
+  stats.sort((a, b) => b.totalPts - a.totalPts);
+  const maxPts = stats[0].totalPts || 1;
+
+  let html = '';
+  stats.forEach((s, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+    const pct = (s.totalPts / maxPts * 100).toFixed(1);
+    const origIdx = DATA.models.indexOf(s.model);
+    const barColor = getColor(origIdx);
+
+    html += `<tr>
+      <td class="${rankClass}"><span class="rank-medal">${rank}</span></td>
+      <td>${s.model}</td>
+      <td>${s.totalPts}</td>
+      <td>${s.avgRank.toFixed(1)}</td>
+      <td>${s.bestWeek}</td>
+      <td>${s.worstWeek}</td>
+      <td class="pts-bar-cell">
+        <div class="pts-bar-wrapper">
+          <div class="pts-bar-track"><div class="pts-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <span class="pts-bar-value">${s.totalPts}</span>
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById('standingsBody').innerHTML = html;
+}
+
+// ===========================================================================
+// RANK HEATMAP
+// ===========================================================================
+let heatmapMetric = 'mase';
+
+function heatmapColor(rank, nModels) {
+  // rank goes from 1 (best) to nModels (worst)
+  // Map to a violet gradient: rank 1 → deep violet, rank nModels → warm rose
+  const t = (rank - 1) / (nModels - 1); // 0 = best, 1 = worst
+  // Color stops: #4527A0 (best) → #7C4DFF → #D1B3FF → #FF8A65 → #D32F6B (worst)
+  const stops = [
+    { r: 69, g: 39, b: 160 },     // #4527A0
+    { r: 124, g: 77, b: 255 },    // #7C4DFF
+    { r: 209, g: 179, b: 255 },   // #D1B3FF
+    { r: 255, g: 138, b: 101 },   // #FF8A65
+    { r: 211, g: 47, b: 107 }     // #D32F6B
+  ];
+  const segment = t * (stops.length - 1);
+  const idx = Math.min(Math.floor(segment), stops.length - 2);
+  const localT = segment - idx;
+  const c1 = stops[idx], c2 = stops[idx + 1];
+  const r = Math.round(c1.r + (c2.r - c1.r) * localT);
+  const g = Math.round(c1.g + (c2.g - c1.g) * localT);
+  const b = Math.round(c1.b + (c2.b - c1.b) * localT);
+  return `rgb(${r},${g},${b})`;
+}
+
+function textColorForBg(rank, nModels) {
+  const t = (rank - 1) / (nModels - 1);
+  // White text for dark cells (first ~35% and last ~20%), dark text for light cells (middle)
+  return t < 0.35 || t > 0.80 ? '#ffffff' : '#1E1333';
+}
+
+function renderHeatmap() {
+  const src = heatmapMetric === 'mase' ? DATA.mase : DATA.crps;
+  const nModels = DATA.models.length;
+
+  // Group by cutoff
+  const byCutoff = {};
+  src.forEach(r => {
+    if (!byCutoff[r.cutoff]) byCutoff[r.cutoff] = [];
+    byCutoff[r.cutoff].push(r);
+  });
+  const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
+
+  // Compute avg rank per model per cutoff
+  const avgRanks = {}; // model → {cutoff → avgRank}
+  DATA.models.forEach(m => { avgRanks[m] = {}; });
+
+  cutoffs.forEach(cutoff => {
+    const groupRows = byCutoff[cutoff];
+    const rankAccum = {};
+    const rankCount = {};
+    DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
+
+    groupRows.forEach(row => {
+      const vals = DATA.models.map(m => ({ model: m, val: row.values[m] }))
+        .filter(x => x.val !== null && x.val !== undefined);
+      vals.sort((a, b) => a.val - b.val);
+      vals.forEach((x, idx) => {
+        rankAccum[x.model] += (idx + 1);
+        rankCount[x.model] += 1;
+      });
+    });
+
+    DATA.models.forEach(m => {
+      avgRanks[m][cutoff] = rankCount[m] > 0 ? rankAccum[m] / rankCount[m] : null;
+    });
+  });
+
+  // Sort models by their overall average rank (best first)
+  const overallAvg = {};
+  DATA.models.forEach(m => {
+    const vals = cutoffs.map(c => avgRanks[m][c]).filter(v => v !== null);
+    overallAvg[m] = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 99;
+  });
+  const sortedModels = DATA.models.slice().sort((a, b) => overallAvg[a] - overallAvg[b]);
+
+  // Build HTML table
+  let html = '<thead><tr><th>Model</th>';
+  cutoffs.forEach(c => { html += `<th>${formatCutoff(c)}</th>`; });
+  html += '<th>Avg</th></tr></thead><tbody>';
+
+  sortedModels.forEach(m => {
+    html += `<tr><td>${m}</td>`;
+    cutoffs.forEach(c => {
+      const rank = avgRanks[m][c];
+      if (rank !== null) {
+        const bg = heatmapColor(rank, nModels);
+        const fg = textColorForBg(rank, nModels);
+        html += `<td class="model-rank-cell" style="background:${bg};color:${fg}">${rank.toFixed(1)}</td>`;
+      } else {
+        html += '<td style="color:var(--color-text-faint)">—</td>';
+      }
+    });
+    // Overall avg column
+    const avg = overallAvg[m];
+    const bg = heatmapColor(avg, nModels);
+    const fg = textColorForBg(avg, nModels);
+    html += `<td class="model-rank-cell" style="background:${bg};color:${fg};font-weight:700">${avg.toFixed(1)}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody>';
+
+  document.getElementById('heatmapTable').innerHTML = html;
+}
+
+// ===========================================================================
+// CONTROLS
+// ===========================================================================
+function setupPillGroup(groupId, stateKey, callback) {
+  document.getElementById(groupId).addEventListener('click', e => {
+    const pill = e.target.closest('.pill');
+    if (!pill) return;
+    document.querySelectorAll(`#${groupId} .pill`).forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    const val = pill.getAttribute('data-value');
+    if (callback) {
+      callback(val);
+    } else {
+      state[stateKey] = val;
+      renderChart();
+      renderTable();
+    }
+  });
+}
+
+function setupSelect(selectId, stateKey) {
+  document.getElementById(selectId).addEventListener('change', e => {
+    state[stateKey] = e.target.value;
+    renderChart();
+    renderTable();
+  });
+}
+
+// ===========================================================================
+// THEME TOGGLE
+// ===========================================================================
+(function() {
+  const toggle = document.querySelector('[data-theme-toggle]');
+  const root = document.documentElement;
+  let theme = root.getAttribute('data-theme') || 'light';
+
+  function updateIcon() {
+    toggle.innerHTML = theme === 'dark'
+      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  }
+
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', theme);
+      updateIcon();
+      // Re-render all charts with updated colors
+      renderChart();
+      renderChampChart();
+      renderChampStandings();
+      renderHeatmap();
+    });
+  }
+})();
+
+// ===========================================================================
+// INIT
+// ===========================================================================
+function init() {
+  renderSummaryCards();
+  setupPillGroup('metricToggle', 'metric');
+  setupPillGroup('viewToggle', 'view');
+  setupSelect('subdatasetFilter', 'subdataset');
+  setupSelect('frequencyFilter', 'frequency');
+  renderChart();
+  renderTable();
+
+  // Championship Points metric toggle
+  setupPillGroup('champMetricToggle', null, function(val) {
+    champMetric = val;
+    renderChampChart();
+    renderChampStandings();
+  });
+  renderChampChart();
+  renderChampStandings();
+
+  // Heatmap metric toggle
+  setupPillGroup('heatmapMetricToggle', null, function(val) {
+    heatmapMetric = val;
+    renderHeatmap();
+  });
+  renderHeatmap();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

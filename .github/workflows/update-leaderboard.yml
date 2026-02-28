@@ -1,0 +1,61 @@
+name: Update Leaderboard
+
+on:
+  schedule:
+    # Every Sunday at 23:00 UTC
+    - cron: '0 23 * * 0'
+  workflow_dispatch: # Allow manual triggers
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch leaderboard data
+        run: python scripts/fetch_data.py
+
+      - name: Generate HTML
+        run: python scripts/generate_html.py
+
+      - name: Commit updated data and HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/leaderboard.json index.html
+          git diff --cached --quiet || git commit -m "Update leaderboard data $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
