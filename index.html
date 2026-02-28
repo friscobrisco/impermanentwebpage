@@ -99,6 +99,77 @@ body {
   border-bottom: 1px solid var(--color-divider);
   margin-bottom: 32px;
 }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-logo {
+  height: 40px;
+  width: auto;
+  flex-shrink: 0;
+}
+.header-logo.logo-dark { display: block; }
+.header-logo.logo-light { display: none; }
+[data-theme="dark"] .header-logo.logo-dark { display: none; }
+[data-theme="dark"] .header-logo.logo-light { display: block; }
+.header-text h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.header-text p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  max-width: 100%;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.update-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.update-badge .update-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+.update-badge .update-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* === FOOTER === */
+.footer {
+  margin-top: 60px;
+  padding: 24px 0;
+  border-top: 1px solid var(--color-divider);
+  text-align: center;
+}
+.footer p {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  line-height: 1.6;
+}
+.footer .footer-update {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
 .header-left h1 {
   font-size: 28px;
   font-weight: 700;
@@ -543,7 +614,11 @@ td.best-value {
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
   .header { flex-direction: column; gap: 12px; padding: 24px 0 20px; }
-  .header h1 { font-size: 24px; }
+  .header-left { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .header-logo { height: 32px; }
+  .header-text h1 { font-size: 24px; }
+  .header-right { align-self: flex-start; }
+  .update-badge { align-items: flex-start; }
   .summary-row { grid-template-columns: 1fr; }
   .controls { gap: 8px; }
   .control-group { flex-wrap: wrap; }
@@ -580,14 +655,24 @@ td.best-value {
   <!-- HEADER -->
   <header class="header">
     <div class="header-left">
-      <h1>Impermanent Leaderboard</h1>
-      <p>Live time-series forecasting benchmark on GitHub activity signals</p>
+      <img src="tc.png" alt="TimeCopilot" class="header-logo logo-dark">
+      <img src="tcwh.png" alt="TimeCopilot" class="header-logo logo-light">
+      <div class="header-text">
+        <h1>Impermanent Leaderboard</h1>
+        <p>Live time-series forecasting benchmark on GitHub activity signals</p>
+      </div>
     </div>
-    <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
+    <div class="header-right">
+      <div class="update-badge">
+        <span class="update-label">Last Updated</span>
+        <span class="update-date" id="lastUpdated">—</span>
+      </div>
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <!-- SUMMARY CARDS -->
@@ -714,6 +799,12 @@ td.best-value {
       </table>
     </div>
   </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p class="footer-update">This leaderboard is updated automatically every week.</p>
+    <p>&copy; 2026 Out of the Blue Labs, Inc. All rights reserved.</p>
+  </footer>
 
 </div>
 
@@ -1492,6 +1583,16 @@ function setupSelect(selectId, stateKey) {
 // INIT
 // ===========================================================================
 function init() {
+  // Set last updated date from the latest cutoff in the data
+  if (DATA.cutoffs && DATA.cutoffs.length > 0) {
+    const latestCutoff = DATA.cutoffs[DATA.cutoffs.length - 1];
+    // Format "2026-02-12-00" → "Feb 12, 2026"
+    const parts = latestCutoff.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const formatted = months[parseInt(parts[1])-1] + ' ' + parseInt(parts[2]) + ', ' + parts[0];
+    document.getElementById('lastUpdated').textContent = formatted;
+  }
+
   renderSummaryCards();
   setupPillGroup('metricToggle', 'metric');
   setupPillGroup('viewToggle', 'view');
