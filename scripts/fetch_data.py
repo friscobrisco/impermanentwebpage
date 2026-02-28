@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timedelta
 
 import requests
 
@@ -222,6 +223,27 @@ def main():
 
     # Use MODELS constant as authoritative list
     models = MODELS
+
+    # Filter to last 3 months only
+    all_cutoffs = sorted(set(r["cutoff"] for r in mase_records + crps_records))
+    if all_cutoffs:
+        # Parse the latest cutoff date: "2026-02-12-00" → datetime
+        latest_parts = all_cutoffs[-1].split("-")
+        latest_date = datetime(int(latest_parts[0]), int(latest_parts[1]), int(latest_parts[2]))
+        cutoff_threshold = latest_date - timedelta(days=90)
+
+        def is_within_3_months(cutoff_str):
+            parts = cutoff_str.split("-")
+            dt = datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+            return dt >= cutoff_threshold
+
+        before_mase = len(mase_records)
+        before_crps = len(crps_records)
+        mase_records = [r for r in mase_records if is_within_3_months(r["cutoff"])]
+        crps_records = [r for r in crps_records if is_within_3_months(r["cutoff"])]
+        print(f"  Filtered to last 3 months (since {cutoff_threshold.strftime('%Y-%m-%d')}):")
+        print(f"    MASE: {before_mase} → {len(mase_records)} rows")
+        print(f"    CRPS: {before_crps} → {len(crps_records)} rows")
 
     # Extract unique cutoffs, subdatasets, frequencies
     all_records = mase_records + crps_records

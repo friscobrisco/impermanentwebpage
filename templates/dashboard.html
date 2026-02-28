@@ -92,65 +92,95 @@ body {
 
 /* === HEADER === */
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 40px 0 32px;
+  padding: 40px 0 28px;
   border-bottom: 1px solid var(--color-divider);
   margin-bottom: 32px;
 }
-.header-left {
+.header-top {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  margin-bottom: 16px;
 }
 .header-logo {
-  height: 40px;
+  height: 28px;
   width: auto;
-  flex-shrink: 0;
 }
 .header-logo.logo-dark { display: block; }
 .header-logo.logo-light { display: none; }
 [data-theme="dark"] .header-logo.logo-dark { display: none; }
 [data-theme="dark"] .header-logo.logo-light { display: block; }
-.header-text h1 {
-  font-size: 28px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-content {
+  text-align: left;
+}
+.header-content h1 {
+  font-size: 32px;
   font-weight: 700;
   color: var(--color-text);
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
-.header-text p {
+.header-content p {
   font-size: 14px;
   color: var(--color-text-muted);
-  margin-top: 4px;
-  max-width: 100%;
+  margin-top: 6px;
 }
-.header-right {
+.header-meta {
+  display: flex;
+  gap: 20px;
+  margin-top: 14px;
+}
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-faint);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+.meta-tag svg {
+  flex-shrink: 0;
+}
+.meta-tag strong {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* === DATA SNAPSHOT BANNER === */
+.snapshot-banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-.update-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-.update-badge .update-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-faint);
-}
-.update-badge .update-date {
+  gap: 10px;
   font-size: 13px;
-  font-weight: 500;
   color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
+}
+.snapshot-banner svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.snapshot-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition-interactive);
+}
+.snapshot-link:hover {
+  border-bottom-color: var(--color-primary);
 }
 
 /* === FOOTER === */
@@ -613,12 +643,11 @@ td.best-value {
 
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
-  .header { flex-direction: column; gap: 12px; padding: 24px 0 20px; }
-  .header-left { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .header-logo { height: 32px; }
-  .header-text h1 { font-size: 24px; }
-  .header-right { align-self: flex-start; }
-  .update-badge { align-items: flex-start; }
+  .header { padding: 24px 0 20px; }
+  .header-logo { height: 24px; }
+  .header-content h1 { font-size: 24px; }
+  .header-meta { flex-direction: column; gap: 8px; }
+  .snapshot-banner { flex-direction: column; text-align: center; gap: 8px; }
   .summary-row { grid-template-columns: 1fr; }
   .controls { gap: 8px; }
   .control-group { flex-wrap: wrap; }
@@ -654,26 +683,40 @@ td.best-value {
 
   <!-- HEADER -->
   <header class="header">
-    <div class="header-left">
-      <img src="tc.png" alt="TimeCopilot" class="header-logo logo-dark">
-      <img src="tcwh.png" alt="TimeCopilot" class="header-logo logo-light">
-      <div class="header-text">
-        <h1>Impermanent Leaderboard</h1>
-        <p>Live time-series forecasting benchmark on GitHub activity signals</p>
+    <div class="header-top">
+      <div>
+        <img src="tc.png" alt="TimeCopilot" class="header-logo logo-dark">
+        <img src="tcwh.png" alt="TimeCopilot" class="header-logo logo-light">
+      </div>
+      <div class="header-actions">
+        <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
       </div>
     </div>
-    <div class="header-right">
-      <div class="update-badge">
-        <span class="update-label">Last Updated</span>
-        <span class="update-date" id="lastUpdated">—</span>
+    <div class="header-content">
+      <h1>Impermanent Leaderboard</h1>
+      <p>Live time-series forecasting benchmark on GitHub activity signals</p>
+      <div class="header-meta">
+        <span class="meta-tag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Updated weekly
+        </span>
+        <span class="meta-tag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Last updated <strong id="lastUpdated">—</strong>
+        </span>
       </div>
-      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </button>
     </div>
   </header>
+
+  <!-- SNAPSHOT BANNER -->
+  <div class="snapshot-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    <span>Showing a <strong>3-month rolling snapshot</strong> of model performance across 4 GitHub activity datasets and 4 time frequencies. For access to historical data, <a href="https://form.typeform.com/to/PYKVUpaL" target="_blank" rel="noopener noreferrer" class="snapshot-link">contact us</a>.</span>
+  </div>
 
   <!-- SUMMARY CARDS -->
   <div class="summary-row" id="summaryCards"></div>
