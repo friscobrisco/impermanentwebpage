@@ -154,6 +154,15 @@ body {
   color: var(--color-text-muted);
   font-weight: 600;
 }
+a.meta-tag-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--transition-interactive), background var(--transition-interactive);
+}
+a.meta-tag-link:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-2);
+}
 
 /* === DATA SNAPSHOT BANNER === */
 .snapshot-banner {
@@ -708,6 +717,10 @@ td.best-value {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           Last updated <strong id="lastUpdated">—</strong>
         </span>
+        <a href="https://huggingface.co/spaces/TimeCopilot/ImpermanentLeaderboard" target="_blank" rel="noopener noreferrer" class="meta-tag meta-tag-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          HuggingFace Space
+        </a>
       </div>
     </div>
   </header>
