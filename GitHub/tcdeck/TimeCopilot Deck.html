@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TimeCopilot — Investor Deck | February 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN SYSTEM — UNIFIED PALETTE
+   Two accent colors only: Violet + Cyan
+   Everything else derives from these two.
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --bg-base: #0c0c18;
+  --bg-deep: #06060e;
+  --bg-surface: #14142a;
+  --text-primary: #eef0f6;
+  --text-secondary: #b0b4c8;
+  --text-muted: #6b7094;
+  --accent-1: #a78bfa;
+  --accent-2: #5eead4;
+  --accent-3: #c4b5fd;
+  --grad-accent: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  --glass-bg: rgba(255,255,255,0.04);
+  --glass-border: rgba(255,255,255,0.07);
+  --glass-blur: 16px;
+  --glow-color-rgb: 167, 139, 250;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --slide-padding: clamp(1.5rem, 3vw, 3rem);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET + BASE
+   ═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); overflow: hidden; height: 100vh; width: 100vw; }
+
+/* ═══════════════════════════════════════════════════════
+   DECK NAVIGATION — ABSOLUTE POSITIONED SLIDES
+   ═══════════════════════════════════════════════════════ */
+.deck { width: 100vw; height: 100vh; position: relative; }
+.slide {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.96);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  pointer-events: none; overflow: hidden;
+  background: var(--bg-base);
+}
+.slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+
+/* ═══════════════════════════════════════════════════════
+   NAV CONTROLS
+   ═══════════════════════════════════════════════════════ */
+.nav-controls {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px; z-index: 100;
+  background: rgba(6,6,14,0.7); backdrop-filter: blur(20px);
+  padding: 10px 24px; border-radius: 40px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.nav-btn {
+  width: 36px; height: 36px; border: none;
+  background: rgba(255,255,255,0.06); color: var(--accent-1);
+  border-radius: 50%; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.3s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.12); }
+.slide-dots { display: flex; gap: 7px; }
+.slide-dots .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); cursor: pointer;
+  transition: all 0.3s;
+}
+.slide-dots .dot.active {
+  background: var(--accent-1);
+  box-shadow: 0 0 10px rgba(var(--glow-color-rgb), 0.5);
+  transform: scale(1.3);
+}
+.slide-counter {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: rgba(255,255,255,0.3); min-width: 40px; text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRADIENT MESH BACKGROUNDS
+   ═══════════════════════════════════════════════════════ */
+@keyframes float-slow {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(60px, -50px) scale(1.12); }
+  50% { transform: translate(-40px, 40px) scale(0.9); }
+  75% { transform: translate(50px, 20px) scale(1.08); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes float-drift {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33% { transform: translate(-50px, -60px) scale(1.15) rotate(3deg); }
+  66% { transform: translate(40px, 30px) scale(0.88) rotate(-2deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+@keyframes float-orbit {
+  0% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(70px, -20px) scale(1.1); }
+  40% { transform: translate(30px, -70px) scale(0.95); }
+  60% { transform: translate(-50px, -40px) scale(1.08); }
+  80% { transform: translate(-30px, 30px) scale(0.92); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(100px);
+  animation: float-slow 12s ease-in-out infinite;
+}
+.blob:nth-child(2) { animation: float-drift 16s ease-in-out infinite; }
+.blob:nth-child(3) { animation: float-orbit 20s ease-in-out infinite; }
+
+/* Noise + Vignette on every slide */
+.slide::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat; background-size: 256px 256px;
+  opacity: 0.025; mix-blend-mode: overlay;
+}
+.slide::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+.slide.active .animate-in { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.slide.active .delay-1 { animation-delay: 0.1s; opacity: 0; }
+.slide.active .delay-2 { animation-delay: 0.2s; opacity: 0; }
+.slide.active .delay-3 { animation-delay: 0.3s; opacity: 0; }
+.slide.active .delay-4 { animation-delay: 0.4s; opacity: 0; }
+.slide.active .delay-5 { animation-delay: 0.5s; opacity: 0; }
+.slide.active .delay-6 { animation-delay: 0.6s; opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONTENT WRAPPER
+   ═══════════════════════════════════════════════════════ */
+.content {
+  position: relative; z-index: 2;
+  max-width: 1400px; width: 100%;
+  padding: 0 var(--slide-padding);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════════════════ */
+.slide-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent-1); margin-bottom: 20px;
+}
+.slide-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 700;
+  line-height: 1.1; letter-spacing: -0.03em;
+  margin-bottom: 20px; color: var(--text-primary);
+}
+.slide-subtitle {
+  font-size: 1.15rem; font-weight: 400; color: var(--text-secondary);
+  line-height: 1.6; max-width: 680px;
+}
+.gradient-text {
+  background: var(--grad-accent);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.big-number {
+  font-family: var(--font-display);
+  font-weight: 700; line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARDS
+   ═══════════════════════════════════════════════════════ */
+.card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 14px; padding: 28px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--glow-color-rgb), 0.15);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 20px rgba(var(--glow-color-rgb), 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRIDS
+   ═══════════════════════════════════════════════════════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; }
+
+/* ═══════════════════════════════════════════════════════
+   BAR CHART
+   ═══════════════════════════════════════════════════════ */
+.bar-track {
+  height: 24px; background: rgba(255,255,255,0.04);
+  border-radius: 6px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 6px;
+  display: flex; align-items: center; padding: 0 12px;
+  font-size: 0.7rem; font-weight: 600; color: #fff;
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PILLS
+   ═══════════════════════════════════════════════════════ */
+.pill {
+  display: inline-block; padding: 5px 14px; border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem; font-weight: 500; letter-spacing: 0.04em;
+}
+.pill-primary { background: rgba(var(--glow-color-rgb), 0.12); color: var(--accent-1); }
+.pill-secondary { background: rgba(94,234,212,0.1); color: var(--accent-2); }
+
+/* ═══════════════════════════════════════════════════════
+   TERMINAL
+   ═══════════════════════════════════════════════════════ */
+.terminal {
+  background: rgba(6,6,14,0.8);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; overflow: hidden;
+  font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7;
+  backdrop-filter: blur(12px);
+}
+.terminal-bar {
+  background: rgba(255,255,255,0.03); padding: 10px 16px;
+  display: flex; gap: 6px; align-items: center;
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-body { padding: 22px 24px; color: var(--text-secondary); }
+.terminal-body .t-green { color: #6ee7b7; }
+.terminal-body .t-accent { color: var(--accent-1); }
+.terminal-body .t-dim { color: var(--text-muted); }
+.terminal-body .t-white { color: #fff; font-weight: 600; }
+.terminal-body .t-teal { color: var(--accent-2); }
+
+/* ═══════════════════════════════════════════════════════
+   AGENT CHAT
+   ═══════════════════════════════════════════════════════ */
+.agent-chat {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+.agent-chat-header {
+  background: rgba(255,255,255,0.02); padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.chat-bubble {
+  margin: 10px 14px; padding: 12px 16px; border-radius: 10px;
+  font-size: 0.9rem; line-height: 1.6;
+}
+.chat-user {
+  background: rgba(var(--glow-color-rgb), 0.08);
+  border: 1px solid rgba(var(--glow-color-rgb), 0.12);
+  color: var(--text-secondary);
+}
+.chat-api {
+  background: rgba(94,234,212,0.05);
+  border: 1px solid rgba(94,234,212,0.1);
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--accent-2);
+}
+.chat-agent {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRADIENT LINE
+   ═══════════════════════════════════════════════════════ */
+.gradient-line {
+  height: 1px; border-radius: 1px;
+  background: var(--grad-accent);
+  opacity: 0.25;
+}
+
+/* ═══════════════════════════════════════════════════════
+   AVATAR
+   ═══════════════════════════════════════════════════════ */
+.avatar {
+  width: 60px; height: 60px; border-radius: 14px;
+  background: var(--grad-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700; font-size: 1rem; color: var(--bg-deep);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SCATTER PLOT
+   ═══════════════════════════════════════════════════════ */
+.scatter-dot {
+  position: absolute;
+  transform: translate(-50%, 50%);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .content { padding: 0 clamp(1.5rem, 4vw, 2.5rem); }
+  .slide-title { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRINT / PDF EXPORT
+   Makes all slides visible in a vertical stack,
+   strips animations, preserves dark background.
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  @page { size: landscape; margin: 0; }
+  body { overflow: visible; height: auto; width: 100%; background: var(--bg-deep); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .deck { height: auto; }
+  .slide {
+    position: relative; display: flex;
+    opacity: 1 !important; transform: none !important;
+    pointer-events: all;
+    width: 100vw; height: 100vh;
+    page-break-after: always; break-after: page;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .slide.active { transform: none; }
+  .nav-controls { display: none !important; }
+  .animate-in, .delay-1, .delay-2, .delay-3, .delay-4, .delay-5, .delay-6 {
+    animation: none !important; opacity: 1 !important; transform: none !important;
+  }
+  .blob { animation: none !important; }
+  .particle-canvas, .particle-canvas-ambient { display: none !important; }
+  canvas { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+<!-- ==================== SLIDE 01: TITLE ==================== -->
+<div class="slide active" data-slide="1">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:600px;height:600px;top:-150px;right:-120px;background:var(--accent-1);opacity:0.10;"></div>
+    <div class="blob" style="width:400px;height:400px;bottom:-120px;left:-100px;background:var(--accent-2);opacity:0.07;"></div>
+    <div class="blob" style="width:250px;height:250px;top:35%;left:20%;background:var(--accent-3);opacity:0.06;"></div>
+  </div>
+  <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content" style="text-align:center;">
+    <img src="tcwhite.svg" alt="TimeCopilot" style="height:80px;margin-bottom:28px;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 10px 30px rgba(var(--glow-color-rgb),0.2));opacity:1;" />
+    <div class="animate-in delay-2" style="font-family:var(--font-display);font-size:clamp(1.2rem,2.2vw,1.7rem);font-weight:400;color:var(--text-secondary);line-height:1.6;max-width:600px;margin:0 auto;">
+      The forecasting infrastructure<br/>for the agentic era
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 02: PROBLEM ==================== -->
+<div class="slide" data-slide="2">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-80px;right:-60px;background:var(--accent-1);opacity:0.06;"></div>
+    <div class="blob" style="width:300px;height:300px;bottom:-80px;left:-60px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1" style="text-align:center;">The Problem</div>
+    <div class="animate-in delay-2">
+      <div class="big-number gradient-text" style="font-size:clamp(4rem,8vw,7rem);margin-bottom:12px;">$1.8T</div>
+      <div class="slide-subtitle" style="font-size:1.35rem;margin:0 auto 56px;max-width:500px;">Lost annually to broken forecasting</div>
+    </div>
+    <div class="grid-3 animate-in delay-3" style="gap:48px;">
+      <div style="text-align:center;">
+        <div class="big-number" style="font-size:2.4rem;margin-bottom:10px;color:var(--text-primary);">200+</div>
+        <div style="font-size:1rem;font-weight:600;margin-bottom:6px;color:var(--text-primary);">models, zero guidance</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">Teams waste months guessing which model fits their data.</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="big-number" style="font-size:2.4rem;margin-bottom:10px;color:var(--text-primary);">6 mo</div>
+        <div style="font-size:1rem;font-weight:600;margin-bottom:6px;color:var(--text-primary);">to first forecast</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">Every pipeline is hand-built, fragile, and locked to one approach.</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="big-number" style="font-size:2.4rem;margin-bottom:10px;color:var(--text-primary);">Zero</div>
+        <div style="font-size:1rem;font-weight:600;margin-bottom:6px;color:var(--text-primary);">context awareness</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">Product launches, competitor moves, regulation. Invisible to every model.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 03: SOLUTION ==================== -->
+<div class="slide" data-slide="3">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:450px;height:450px;top:-100px;left:-80px;background:var(--accent-1);opacity:0.07;"></div>
+    <div class="blob" style="width:350px;height:350px;bottom:-80px;right:-80px;background:var(--accent-2);opacity:0.05;"></div>
+  </div>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">The Solution</div>
+    <div class="slide-title animate-in delay-2" style="margin-bottom:40px;">The first agentic<br/>forecasting platform</div>
+
+    <div class="terminal animate-in delay-3" style="max-width:780px;margin:0 auto 40px;text-align:left;">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+        <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+        <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+        <span style="margin-left:12px;font-size:0.6rem;color:var(--text-muted);">terminal</span>
+      </div>
+      <div class="terminal-body" style="padding:24px 28px;">
+        <div style="font-size:1.3rem;line-height:1.6;">
+          <span class="t-green">$</span> <span class="t-white">uv run timecopilot forecast</span> <span class="t-dim">data.csv</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="animate-in delay-4" style="margin-bottom:40px;">
+      <div class="big-number gradient-text" style="font-size:clamp(3.5rem,7vw,5.5rem);margin-bottom:8px;">&lt; 60s</div>
+      <div style="font-size:1.05rem;color:var(--text-muted);">from data to production forecast</div>
+    </div>
+
+    <div class="animate-in delay-5" style="display:flex;justify-content:center;gap:36px;flex-wrap:wrap;">
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        <span style="color:var(--accent-1);font-weight:600;">Analyze</span> your series
+      </div>
+      <div style="color:rgba(255,255,255,0.1);">→</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        <span style="color:var(--accent-2);font-weight:600;">Select</span> the best model
+      </div>
+      <div style="color:rgba(255,255,255,0.1);">→</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        <span style="color:var(--accent-1);font-weight:600;">Forecast</span> with confidence
+      </div>
+      <div style="color:rgba(255,255,255,0.1);">→</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        <span style="color:var(--accent-2);font-weight:600;">Explain</span> in plain English
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 04: PRODUCT IN ACTION ==================== -->
+<div class="slide" data-slide="4">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-60px;background:var(--accent-1);opacity:0.05;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content">
+    <div class="slide-label animate-in delay-1">Product In Action</div>
+    <div class="slide-title animate-in delay-2" style="font-size:clamp(2.2rem,4.2vw,3rem);margin-bottom:28px;">Two interfaces, one engine</div>
+    <div class="grid-2 animate-in delay-3" style="align-items:start;">
+
+      <!-- Left: CLI -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:500;color:var(--text-muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">Command Line</div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+            <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+            <div class="terminal-dot" style="background:rgba(255,255,255,0.15);"></div>
+            <span style="margin-left:10px;font-size:0.7rem;color:var(--text-muted);">timecopilot</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="t-green">$</span> <span class="t-white">timecopilot forecast sales_data.csv --horizon 12</span></div>
+            <br/>
+            <div class="t-dim">&nbsp;&nbsp;Analyzing 156 weekly observations...</div>
+            <div class="t-dim">&nbsp;&nbsp;Detected: <span class="t-teal">strong 52-week seasonality</span>, <span class="t-teal">upward trend</span></div>
+            <div class="t-dim">&nbsp;&nbsp;Testing 12 candidates across 4 paradigms...</div>
+            <br/>
+            <div>&nbsp;&nbsp;<span class="t-green">&#10004;</span> Selected: <span class="t-white">SARIMA(1,1,1)(0,1,1)[52]</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;CRPS: <span class="t-green">0.042</span> <span class="t-dim">(next-best: 0.051)</span></div>
+            <br/>
+            <div class="t-accent">&nbsp;&nbsp;"SARIMA captures your annual cycle directly.</div>
+            <div class="t-accent">&nbsp;&nbsp;&nbsp;Foundation models added unnecessary variance."</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Agent -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:500;color:var(--text-muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">Agent Integration</div>
+        <div class="agent-chat">
+          <div class="agent-chat-header">
+            (Claude, OpenClaw, Perplexity Computer +) &amp; TimeCopilot
+          </div>
+          <div class="chat-bubble chat-user">
+            "What will Q3 demand look like?"
+          </div>
+          <div class="chat-bubble chat-api">
+            <div style="color:rgba(94,234,212,0.5);font-size:0.68rem;margin-bottom:4px;">&#x279C; API CALL</div>
+            <div>timecopilot.forecast(df, horizon=90)</div>
+            <div style="margin-top:4px;">Model: <span style="color:#fff;">TimesFM + ETS ensemble</span></div>
+            <div>Result: <span class="t-teal">14,200 units</span> <span class="t-dim">(&#xB1;800)</span></div>
+          </div>
+          <div class="chat-bubble chat-agent">
+            "Q3 demand is projected at <strong style="color:#fff;">14,200 units</strong>, down 8% from Q2. The model detected a <strong style="color:var(--accent-2);">seasonal dip pattern</strong> from prior years."
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 05: WHY NOW ==================== -->
+<div class="slide" data-slide="5">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;left:20%;background:var(--accent-1);opacity:0.06;"></div>
+    <div class="blob" style="width:300px;height:300px;bottom:-60px;right:10%;background:var(--accent-2);opacity:0.05;"></div>
+  </div>
+  <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">Why Now</div>
+    <div class="slide-title animate-in delay-2" style="margin-bottom:12px;">Time and language converged</div>
+    <div class="slide-subtitle animate-in delay-2" style="margin:0 auto 48px;">Neither existed 24 months ago. Together they create an entirely new category.</div>
+
+    <div class="animate-in delay-3" style="display:flex;align-items:center;justify-content:center;gap:0;max-width:900px;margin:0 auto;">
+      <!-- Left -->
+      <div style="flex:1;text-align:right;padding-right:40px;">
+        <div class="big-number" style="font-size:clamp(3rem,5vw,4.5rem);margin-bottom:10px;color:var(--accent-2);">12+</div>
+        <div style="font-size:1.3rem;font-weight:600;margin-bottom:6px;">Time series foundation models</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);line-height:1.6;">Chronos, Moirai, TimesFM<br/>pretrained on billions of time points</div>
+      </div>
+
+      <!-- Center -->
+      <div style="flex-shrink:0;width:70px;height:70px;border-radius:50%;background:var(--grad-accent);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(var(--glow-color-rgb),0.25),0 0 80px rgba(94,234,212,0.1);">
+        <span style="font-size:1.5rem;font-weight:700;color:var(--bg-deep);">+</span>
+      </div>
+
+      <!-- Right -->
+      <div style="flex:1;text-align:left;padding-left:40px;">
+        <div class="big-number" style="font-size:clamp(3rem,5vw,4.5rem);margin-bottom:10px;color:var(--accent-1);">&#x221E;</div>
+        <div style="font-size:1.3rem;font-weight:600;margin-bottom:6px;">LLM agents</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);line-height:1.6;">Natural language is the new<br/>control layer for every workflow</div>
+      </div>
+    </div>
+
+    <div class="animate-in delay-4" style="margin-top:48px;">
+      <div style="font-size:1.1rem;color:var(--text-muted);">Forecasting is a core operation <strong style="color:var(--text-primary);">across every industry</strong>. Now agents can do it.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 06: BENCHMARK ==================== -->
+<div class="slide" data-slide="6">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-80px;left:-60px;background:var(--accent-1);opacity:0.06;"></div>
+    <div class="blob" style="width:300px;height:300px;bottom:-80px;right:-60px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content">
+    <div class="slide-label animate-in delay-1">Proof</div>
+    <div class="grid-2 animate-in delay-2" style="align-items:center;">
+      <div>
+        <div class="big-number gradient-text" style="font-size:clamp(4rem,8vw,7rem);margin-bottom:8px;">#1</div>
+        <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:600;margin-bottom:14px;">GIFT-Eval Benchmark</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);line-height:1.7;margin-bottom:20px;">
+          Outperforming models from AWS, Google, Salesforce, Datadog, and IBM on the most comprehensive time-series evaluation.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <span class="pill pill-primary">CRPS 0.483</span>
+          <span class="pill pill-secondary">13 models tested</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <!-- Bars -->
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-family:var(--font-display);font-size:0.8rem;font-weight:600;color:var(--accent-1);">TimeCopilot</span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-1);">0.483</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:33%;background:var(--grad-accent);">Best</div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Chronos-2 <span style="color:var(--text-muted);">AWS</span></span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">0.486</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:34%;background:rgba(var(--glow-color-rgb),0.35);"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);">TimesFM-2.5 <span style="color:var(--text-muted);">Google</span></span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">0.490</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:36%;background:rgba(var(--glow-color-rgb),0.28);"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Moirai2 <span style="color:var(--text-muted);">Salesforce</span></span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">0.515</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:46%;background:rgba(var(--glow-color-rgb),0.20);"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Toto Open <span style="color:var(--text-muted);">Datadog</span></span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">0.520</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:48%;background:rgba(var(--glow-color-rgb),0.15);"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Moirai Base <span style="color:var(--text-muted);">Salesforce</span></span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">0.630</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:92%;background:rgba(var(--glow-color-rgb),0.10);"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 07: COMPETITIVE ==================== -->
+<div class="slide" data-slide="7">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-60px;background:var(--accent-1);opacity:0.05;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content">
+    <div class="slide-label animate-in delay-1">Competitive Positioning</div>
+    <div style="display:flex;align-items:flex-start;gap:44px;">
+      <!-- Left: Title -->
+      <div class="animate-in delay-2" style="flex:0 0 260px;padding-top:12px;">
+        <div class="slide-title" style="font-size:clamp(1.6rem,3vw,2.2rem);margin-bottom:14px;">TimeCopilot is <span class="gradient-text">massively multi-model</span></div>
+        <div style="font-size:0.9rem;color:var(--text-muted);line-height:1.7;margin-bottom:20px;">Incumbents are focused on their one model, one focused approach, making them accurate <em>or</em> usable. TimeCopilot is the only platform that delivers top accuracy with agentic orchestration.</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--accent-1);box-shadow:0 0 12px rgba(var(--glow-color-rgb),0.5);"></div>
+          <img src="tcwhite.svg" alt="TimeCopilot" style="height:14px;opacity:0.7;" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin:0 2px;"></div>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Others</span>
+        </div>
+      </div>
+
+      <!-- Right: Scatter -->
+      <div class="animate-in delay-3" style="flex:1;position:relative;margin-left:20px;">
+        <div style="position:absolute;left:-40px;top:50%;transform:translateY(-50%) rotate(-90deg);white-space:nowrap;font-family:var(--font-mono);font-size:0.82rem;font-weight:600;color:var(--text-secondary);letter-spacing:0.08em;">Time-Series Accuracy</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.15);"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.15);"></div>
+
+        <div style="position:relative;height:420px;margin-left:2px;">
+          <!-- TimeCopilot -->
+          <div style="position:absolute;right:4%;top:3%;text-align:center;">
+            <div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:7px 14px;background:rgba(var(--glow-color-rgb),0.08);border:1px solid rgba(var(--glow-color-rgb),0.2);border-radius:20px;">
+              <img src="tcwhite.svg" alt="TimeCopilot" style="height:20px;opacity:0.9;" />
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;background:var(--accent-1);box-shadow:0 0 20px rgba(var(--glow-color-rgb),0.6),0 0 50px rgba(var(--glow-color-rgb),0.2);margin:8px auto 0;"></div>
+          </div>
+
+          <!-- AWS -->
+          <div style="position:absolute;left:16%;top:8%;text-align:center;">
+            <div style="font-size:1.05rem;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/aws.amazon.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="AWS" style="width:24px;height:24px;object-fit:contain;border-radius:3px;">AWS</div>
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin:6px auto 0;"></div>
+          </div>
+          <!-- Google -->
+          <div style="position:absolute;left:42%;top:6%;text-align:center;">
+            <div style="font-size:1.05rem;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/google.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Google" style="width:24px;height:24px;object-fit:contain;border-radius:3px;">Google</div>
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin:6px auto 0;"></div>
+          </div>
+          <!-- Datadog -->
+          <div style="position:absolute;left:20%;top:26%;text-align:center;">
+            <div style="font-size:0.95rem;font-weight:600;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/datadoghq.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Datadog" style="width:22px;height:22px;object-fit:contain;border-radius:3px;">Datadog</div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.15);margin:6px auto 0;"></div>
+          </div>
+          <!-- Salesforce -->
+          <div style="position:absolute;left:46%;top:23%;text-align:center;">
+            <div style="font-size:0.95rem;font-weight:600;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/salesforce.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Salesforce" style="width:22px;height:22px;object-fit:contain;border-radius:3px;">Salesforce</div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.15);margin:6px auto 0;"></div>
+          </div>
+          <!-- Nixtla -->
+          <div style="position:absolute;left:13%;top:44%;text-align:center;">
+            <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/nixtla.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Nixtla" style="width:19px;height:19px;object-fit:contain;border-radius:3px;">Nixtla</div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.12);margin:6px auto 0;"></div>
+          </div>
+          <!-- Alibaba -->
+          <div style="position:absolute;left:45%;top:42%;text-align:center;">
+            <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:6px;justify-content:center;"><img src="https://img.logo.dev/alibaba.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Alibaba" style="width:19px;height:19px;object-fit:contain;border-radius:3px;">Alibaba</div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.12);margin:6px auto 0;"></div>
+          </div>
+          <!-- NXAI -->
+          <div style="position:absolute;left:12%;top:60%;text-align:center;">
+            <div style="font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;justify-content:center;"><img src="https://img.logo.dev/nxai.ai?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="NXAI" style="width:17px;height:17px;object-fit:contain;border-radius:3px;">NXAI</div>
+            <div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.1);margin:6px auto 0;"></div>
+          </div>
+          <!-- Tsinghua -->
+          <div style="position:absolute;left:44%;top:58%;text-align:center;">
+            <div style="font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;justify-content:center;"><img src="https://img.logo.dev/tsinghua.edu.cn?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Tsinghua" style="width:17px;height:17px;object-fit:contain;border-radius:3px;">Tsinghua</div>
+            <div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.1);margin:6px auto 0;"></div>
+          </div>
+          <!-- LLMs cluster -->
+          <div style="position:absolute;left:28%;bottom:5%;text-align:center;width:44%;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:4px;">
+              <span style="font-size:0.85rem;color:rgba(255,255,255,0.25);display:inline-flex;align-items:center;gap:5px;"><img src="https://img.logo.dev/openai.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="OpenAI" style="width:17px;height:17px;object-fit:contain;border-radius:3px;">OpenAI</span>
+              <span style="font-size:0.85rem;color:rgba(255,255,255,0.25);display:inline-flex;align-items:center;gap:5px;"><img src="https://img.logo.dev/anthropic.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Anthropic" style="width:17px;height:17px;object-fit:contain;border-radius:3px;">Anthropic</span>
+              <span style="font-size:0.85rem;color:rgba(255,255,255,0.25);display:inline-flex;align-items:center;gap:5px;"><img src="https://img.logo.dev/mistral.ai?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Mistral" style="width:17px;height:17px;object-fit:contain;border-radius:3px;">Mistral</span>
+            </div>
+            <div style="font-size:0.95rem;font-weight:600;color:rgba(255,255,255,0.2);">General LLMs</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:8px;font-family:var(--font-mono);font-size:0.82rem;font-weight:600;color:var(--text-secondary);letter-spacing:0.08em;">Usability / Agentic Integration</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 08: TRACTION ==================== -->
+<div class="slide" data-slide="8">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-80px;right:-80px;background:var(--accent-1);opacity:0.06;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-60px;left:-40px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">Traction</div>
+    <div class="slide-title animate-in delay-2" style="margin-bottom:10px;">Building a category position fast</div>
+    <div class="slide-subtitle animate-in delay-2" style="margin:0 auto 48px;">Launched December 2025</div>
+    <div class="grid-4 animate-in delay-3">
+      <div class="card" style="text-align:center;padding:28px 16px;">
+        <div class="big-number" style="font-size:2.8rem;color:var(--text-primary);">18K+</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.1em;">Downloads</div>
+      </div>
+      <div class="card" style="text-align:center;padding:28px 16px;">
+        <div class="big-number" style="font-size:2.8rem;color:var(--text-primary);">400</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.1em;">GitHub Stars</div>
+      </div>
+      <div class="card" style="text-align:center;padding:28px 16px;">
+        <div class="big-number" style="font-size:2.8rem;color:var(--text-primary);">59</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.1em;">Forks</div>
+      </div>
+      <div class="card" style="text-align:center;padding:28px 16px;">
+        <div class="big-number gradient-text" style="font-size:2.8rem;">5%</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.1em;">WoW Growth</div>
+      </div>
+    </div>
+    <div class="gradient-line animate-in delay-4" style="max-width:500px;margin:40px auto 28px;"></div>
+    <div class="animate-in delay-5" style="display:flex;justify-content:center;gap:28px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="pill pill-primary">NeurIPS 2025</span>
+        <span style="font-size:0.8rem;color:var(--text-muted);">Published</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="pill pill-secondary">ICLR 2026</span>
+        <span style="font-size:0.8rem;color:var(--text-muted);">Accepted</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 09: COMMUNITY ==================== -->
+<div class="slide" data-slide="9">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;left:-60px;background:var(--accent-1);opacity:0.05;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;right:-40px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content">
+    <div class="slide-label animate-in delay-1" style="text-align:center;">Go-to-Market</div>
+    <div class="slide-title animate-in delay-2" style="text-align:center;margin-bottom:10px;">The forecasting community loves us</div>
+    <div class="slide-subtitle animate-in delay-2" style="text-align:center;margin:0 auto 32px;font-size:1.25rem;">Scientific excellence is creating inbound</div>
+
+    <div style="display:flex;gap:40px;align-items:center;">
+
+      <!-- Left: Wall of Love -->
+      <div style="flex:1.2;display:flex;flex-direction:column;gap:24px;">
+        <!-- Quote 1: Rami Krispin -->
+        <div class="animate-in delay-3" style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:3px;flex-shrink:0;background:linear-gradient(180deg,var(--accent-1),transparent);border-radius:2px;min-height:48px;"></div>
+          <div>
+            <div style="font-size:1.05rem;color:var(--text-secondary);line-height:1.55;font-style:italic;margin-bottom:6px;">"I came across a new super interesting project, TimeCopilot."</div>
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Rami Krispin <span style="font-weight:400;color:var(--text-muted);">Sr. Manager, Data Science & Eng. at Apple</span></div>
+          </div>
+        </div>
+        <!-- Quote 2: Jan Rathfelder -->
+        <div class="animate-in delay-4" style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:3px;flex-shrink:0;background:linear-gradient(180deg,var(--accent-2),transparent);border-radius:2px;min-height:48px;"></div>
+          <div>
+            <div style="font-size:1.05rem;color:var(--text-secondary);line-height:1.55;font-style:italic;margin-bottom:6px;">"TimeCopilot has developed an amazing technology already, that combines a model selection process with some LLMs that can give you answers for all sorts of questions from model insights, to business related questions."</div>
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Jan Rathfelder <span style="font-weight:400;color:var(--text-muted);">Demand Forecasting for Wolt, ex Zalando</span></div>
+          </div>
+        </div>
+        <!-- Quote 3: Dr. Swarnendu Bhattacharya -->
+        <div class="animate-in delay-5" style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:3px;flex-shrink:0;background:linear-gradient(180deg,var(--accent-3),transparent);border-radius:2px;min-height:48px;"></div>
+          <div>
+            <div style="font-size:1.05rem;color:var(--text-secondary);line-height:1.55;font-style:italic;margin-bottom:6px;">"Azul Garza, time series world is now officially yours! Congratulations"</div>
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Dr. Swarnendu Bhattacharya <span style="font-weight:400;color:var(--text-muted);">AI & Data Science Leader, Sr. Manager at Unilever</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Microsoft -->
+      <div class="animate-in delay-4" style="flex:0.7;display:flex;flex-direction:column;">
+        <!-- Microsoft logo -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;justify-content:center;">
+          <img src="https://img.logo.dev/microsoft.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Microsoft" style="width:22px;height:22px;object-fit:contain;border-radius:3px;" />
+          <span style="font-size:0.9rem;font-weight:600;color:var(--text-secondary);">Microsoft</span>
+        </div>
+        <!-- Microsoft comment -->
+        <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+          <img src="Microsoft.png" alt="Microsoft comment" style="width:100%;display:block;" />
+        </div>
+      </div>
+
+    </div>
+
+    <!-- sktime partnership — centered below -->
+    <div class="animate-in delay-5" style="margin-top:36px;padding:10px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-align:center;max-width:700px;margin-left:auto;margin-right:auto;">
+      <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">Partners with sktime</span>
+      <span style="font-size:0.8rem;color:var(--text-muted);margin-left:10px;">Largest time series model + agents library in the world. 35M+ downloads.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: MARKET ==================== -->
+<div class="slide" data-slide="10">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:500px;height:500px;top:-120px;right:-100px;background:var(--accent-1);opacity:0.08;"></div>
+    <div class="blob" style="width:350px;height:350px;bottom:-100px;left:-80px;background:var(--accent-2);opacity:0.06;"></div>
+  </div>
+  <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">The Opportunity</div>
+    <div class="slide-title animate-in delay-2" style="margin-bottom:48px;">Every agent needs a forecaster</div>
+
+    <div class="animate-in delay-3" style="margin-bottom:56px;">
+      <div class="big-number gradient-text" style="font-size:clamp(5rem,10vw,8rem);line-height:1;">44%</div>
+      <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:600;color:var(--text-secondary);margin-top:12px;">CAGR Agentic AI economy</div>
+      <div style="font-size:1rem;color:var(--text-muted);margin-top:6px;">Growing to $200B by 2034</div>
+    </div>
+
+    <div class="animate-in delay-4" style="font-size:1.05rem;color:var(--text-muted);line-height:2.2;max-width:660px;margin:0 auto;">
+      <span style="color:var(--accent-1);font-weight:600;">$200B</span> agentic AI economy &nbsp;·&nbsp;
+      <span style="color:var(--accent-2);font-weight:600;">$50B+</span> analytics &amp; forecasting &nbsp;·&nbsp;
+      <span style="color:var(--accent-1);font-weight:600;">$5B+</span>&nbsp;time&#8209;series&nbsp;TAM
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 11: BUSINESS MODEL ==================== -->
+<div class="slide" data-slide="11">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-80px;left:-60px;background:var(--accent-1);opacity:0.06;"></div>
+    <div class="blob" style="width:300px;height:300px;bottom:-80px;right:-60px;background:var(--accent-2);opacity:0.04;"></div>
+  </div>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">Business Model</div>
+    <div class="slide-title animate-in delay-2" style="margin-bottom:10px;">The OpenRouter model</div>
+    <div class="slide-subtitle animate-in delay-2" style="margin:0 auto 40px;">Usage-based revenue that scales with every forecast</div>
+
+    <div class="animate-in delay-3" style="display:flex;justify-content:center;gap:72px;margin-bottom:48px;">
+      <div style="text-align:center;">
+        <div style="font-size:1.6rem;margin-bottom:10px;">&#x26A1;</div>
+        <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:6px;">Buy Tokens</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;">Managed service<br/>Token markup + platform fee</div>
+      </div>
+      <div style="width:1px;background:rgba(255,255,255,0.06);"></div>
+      <div style="text-align:center;">
+        <div style="font-size:1.6rem;margin-bottom:10px;">&#x1F511;</div>
+        <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:6px;">Bring Your Own LLM</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;">Customer's API keys<br/>Share of metered usage</div>
+      </div>
+    </div>
+
+    <div class="gradient-line animate-in delay-4" style="max-width:400px;margin:0 auto 28px;"></div>
+    <div class="animate-in delay-4" style="font-family:var(--font-mono);font-size:0.65rem;font-weight:500;color:var(--accent-1);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:28px;">Path to $1M ARR</div>
+
+    <div class="animate-in delay-5" style="display:flex;justify-content:center;gap:56px;margin-bottom:32px;align-items:center;">
+      <div>
+        <div class="big-number" style="font-size:clamp(2.5rem,5vw,3.5rem);color:var(--text-primary);">6–8</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);margin-top:4px;">enterprise customers</div>
+      </div>
+      <div style="font-size:1.3rem;color:rgba(255,255,255,0.1);">+</div>
+      <div>
+        <div class="big-number" style="font-size:clamp(2.5rem,5vw,3.5rem);color:var(--text-primary);">$180K+</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);margin-top:4px;">ACV</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">hosted services + proprietary dataset APIs</div>
+      </div>
+      <div style="font-size:1.3rem;color:rgba(255,255,255,0.1);">=</div>
+      <div>
+        <div class="big-number gradient-text" style="font-size:clamp(2.5rem,5vw,3.5rem);">$1M+</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);margin-top:4px;">ARR target</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 12: TEAM ==================== -->
+<div class="slide" data-slide="12">
+  <!-- Structural ring decoration -->
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:700px;border-radius:50%;border:1px solid rgba(167,139,250,0.06);pointer-events:none;z-index:0;"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;height:900px;border-radius:50%;border:1px solid rgba(167,139,250,0.035);pointer-events:none;z-index:0;"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:1100px;height:1100px;border-radius:50%;border:1px solid rgba(167,139,250,0.02);pointer-events:none;z-index:0;"></div>
+  <div class="gradient-mesh">
+    <div class="blob" style="width:500px;height:500px;top:-100px;right:-100px;background:var(--accent-1);opacity:0.07;"></div>
+    <div class="blob" style="width:350px;height:350px;bottom:-80px;left:-60px;background:var(--accent-2);opacity:0.05;"></div>
+  </div>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1" style="text-align:center;">The Team</div>
+    <div class="slide-title animate-in delay-2" style="font-size:clamp(2.4rem,5vw,3.6rem);margin-bottom:44px;">Time series is our home turf</div>
+
+    <!-- Founders — open layout, no card boxes, circular photos -->
+    <div class="animate-in delay-3" style="display:flex;justify-content:center;gap:80px;margin-bottom:44px;">
+
+      <!-- Azul -->
+      <div style="text-align:center;max-width:280px;">
+        <img src="azul-bio.png" alt="Azul Garza" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 18px;display:block;box-shadow:0 0 40px rgba(var(--glow-color-rgb),0.15);" />
+        <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:-0.02em;">Azul Garza</div>
+        <div style="font-size:0.88rem;color:var(--accent-1);font-weight:600;margin:4px 0 10px;letter-spacing:0.02em;">Co-founder</div>
+        <div style="font-size:0.92rem;font-weight:500;line-height:1.55;color:var(--text-secondary);">Co-founded Nixtla. 45M downloads, Series&nbsp;A</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-top:4px;">Created the first time series foundation model</div>
+      </div>
+
+      <!-- Renée -->
+      <div style="text-align:center;max-width:280px;">
+        <img src="renee-bio.jpg" alt="Renée Rosillo" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 18px;display:block;box-shadow:0 0 40px rgba(var(--glow-color-rgb),0.15);" />
+        <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:-0.02em;">Ren&eacute;e Rosillo</div>
+        <div style="font-size:0.88rem;color:var(--accent-1);font-weight:600;margin:4px 0 10px;letter-spacing:0.02em;">Co-founder</div>
+        <div style="font-size:0.92rem;font-weight:500;line-height:1.55;color:var(--text-secondary);">Exited founder. Built FounderFamilia, $1B+ community</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-top:4px;">Operator who turns communities into revenue</div>
+      </div>
+
+    </div>
+
+    <!-- Two bottom sections side by side -->
+    <div class="animate-in delay-4" style="display:flex;justify-content:center;gap:40px;">
+
+      <!-- Scientific Collaborators -->
+      <div style="max-width:320px;">
+        <div style="font-family:var(--font-mono);font-size:0.72rem;font-weight:500;color:var(--text-muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">Scientific Collaborators</div>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/ox.ac.uk?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Oxford" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Oxford</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/mila.quebec?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Mila" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Mila</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/cmu.edu?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="CMU" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">CMU</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/ellis.eu?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="ELLIS Tübingen" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">ELLIS T&uuml;bingen</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/itam.mx?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="ITAM" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">ITAM</span>
+        </div>
+      </div>
+
+      <!-- Combined Enterprise Experience -->
+      <div style="max-width:360px;">
+        <div style="font-family:var(--font-mono);font-size:0.72rem;font-weight:500;color:var(--text-muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">Combined Enterprise Experience</div>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/doordash.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="DoorDash" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">DoorDash</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/amazon.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Amazon" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Amazon</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/volkswagen.de?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Volkswagen" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Volkswagen</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/televisa.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Televisa" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Televisa</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/bayer.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Bayer" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Bayer</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/univision.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Univision" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Univision</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/un.org?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="United Nations" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">United Nations</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:0.8rem;font-weight:500;color:var(--text-secondary);"><img src="https://img.logo.dev/opera.com?token=pk_aD9CetTXQfyU_gtsKKxhYQ" alt="Opera" style="width:16px;height:16px;object-fit:contain;border-radius:3px;">Opera</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 13: THE ASK ==================== -->
+<div class="slide" data-slide="13">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:500px;height:500px;top:-120px;left:-80px;background:var(--accent-1);opacity:0.08;"></div>
+    <div class="blob" style="width:350px;height:350px;bottom:-100px;right:-80px;background:var(--accent-2);opacity:0.06;"></div>
+  </div>
+  <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content" style="text-align:center;">
+    <div class="slide-label animate-in delay-1">The Ask</div>
+    <div class="slide-title animate-in delay-2" style="font-size:clamp(2.5rem,5vw,3.8rem);margin-bottom:10px;">Raising $3M</div>
+    <div class="slide-subtitle animate-in delay-2" style="margin:0 auto 56px;">24 months of runway &nbsp;·&nbsp; Cementing our leadership</div>
+
+    <div class="animate-in delay-3" style="display:flex;justify-content:center;align-items:flex-start;gap:48px;margin-top:20px;">
+      <div style="font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;color:var(--text-secondary);flex:1;text-align:center;">Hire core team</div>
+      <div style="font-size:1.3rem;color:rgba(255,255,255,0.15);padding-top:6px;">·</div>
+      <div style="font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;color:var(--text-secondary);flex:1;text-align:center;">Scale enterprise pilots</div>
+      <div style="font-size:1.3rem;color:rgba(255,255,255,0.15);padding-top:6px;">·</div>
+      <div style="font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;color:var(--text-secondary);flex:1;text-align:center;">Ship scientific breakthroughs</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 14: CONTACT ==================== -->
+<div class="slide" data-slide="14">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:600px;height:600px;top:-150px;right:-120px;background:var(--accent-1);opacity:0.10;"></div>
+    <div class="blob" style="width:400px;height:400px;bottom:-120px;left:-100px;background:var(--accent-2);opacity:0.07;"></div>
+    <div class="blob" style="width:250px;height:250px;top:35%;left:20%;background:var(--accent-3);opacity:0.06;"></div>
+  </div>
+  <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content" style="text-align:center;">
+    <img src="tcwhite.svg" alt="TimeCopilot" style="height:80px;margin-bottom:28px;filter:drop-shadow(0 10px 30px rgba(var(--glow-color-rgb),0.2));opacity:1;" />
+    <div class="animate-in delay-1" style="font-family:var(--font-display);font-size:clamp(1.2rem,2.2vw,1.7rem);font-weight:400;color:var(--text-secondary);line-height:1.6;max-width:600px;margin:0 auto 6px;">The forecasting infrastructure<br/>for the agentic era</div>
+    <div class="gradient-line animate-in delay-3" style="max-width:160px;margin:0 auto 36px;"></div>
+    <div class="animate-in delay-4" style="font-size:1rem;color:var(--text-muted);margin-bottom:8px;">Get in touch</div>
+    <div class="animate-in delay-4" style="font-family:var(--font-mono);font-size:1.1rem;font-weight:500;color:var(--accent-1);">
+      founders@timecopilot.dev
+    </div>
+    <div class="animate-in delay-5" style="margin-top:28px;font-size:0.82rem;color:var(--text-muted);">
+      Azul Garza & Renée Rosillo
+    </div>
+  </div>
+</div>
+
+</div><!-- end .deck -->
+
+<!-- NAV CONTROLS -->
+<div class="nav-controls">
+  <button class="nav-btn" onclick="changeSlide(-1)">&#8249;</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" onclick="changeSlide(1)">&#8250;</button>
+  <span class="slide-counter" id="counter">1 / 14</span>
+</div>
+
+<a href="TimeCopilot-Deck.pdf" download style="position:fixed;top:16px;right:16px;z-index:100;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.72rem;font-family:var(--font-mono);text-decoration:none;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='#eef0f6'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-muted)'">&#8595; PDF</a>
+
+<!-- Mouse spotlight overlay -->
+<div class="mouse-spotlight" style="position:fixed;inset:0;pointer-events:none;z-index:99;"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DECK NAVIGATION
+   ═══════════════════════════════════════════════════════ */
+let current = 1;
+const total = document.querySelectorAll('.slide').length;
+const dotsContainer = document.getElementById('dots');
+const counter = document.getElementById('counter');
+
+for (let i = 1; i <= total; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 1 ? ' active' : '');
+  dot.onclick = () => goToSlide(i);
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n) {
+  document.querySelector('.slide.active').classList.remove('active');
+  document.querySelector('.slide[data-slide="' + n + '"]').classList.add('active');
+  current = n;
+  updateNav();
+}
+function changeSlide(dir) {
+  let next = current + dir;
+  if (next < 1) next = total;
+  if (next > total) next = 1;
+  goToSlide(next);
+}
+function updateNav() {
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i + 1 === current);
+  });
+  counter.textContent = current + ' / ' + total;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+});
+
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1);
+});
+
+/* ═══════════════════════════════════════════════════════
+   MOUSE SPOTLIGHT
+   ═══════════════════════════════════════════════════════ */
+document.addEventListener('mousemove', (e) => {
+  const spotlight = document.querySelector('.mouse-spotlight');
+  if (spotlight) {
+    spotlight.style.background = 'radial-gradient(600px circle at ' + e.clientX + 'px ' + e.clientY + 'px, rgba(167,139,250,0.04), transparent 40%)';
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   PARTICLE CANVAS
+   ═══════════════════════════════════════════════════════ */
+function initParticles(canvas, opts) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const interactive = opts.interactive !== false;
+  const count = opts.count || (interactive ? 50 : 16);
+  let mx = -1000, my = -1000;
+  const particles = Array.from({ length: count }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: (Math.random() - 0.5) * 0.25,
+    size: Math.random() * 2 + 0.6,
+    alpha: Math.random() * 0.3 + 0.08
+  }));
+  if (interactive) {
+    canvas.addEventListener('mousemove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      mx = e.clientX - r.left; my = e.clientY - r.top;
+    });
+    canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; });
+  }
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      if (interactive) {
+        const dx = p.x - mx, dy = p.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          const f = (120 - dist) / 120 * 1.5;
+          p.vx += (dx / dist) * f * 0.08;
+          p.vy += (dy / dist) * f * 0.08;
+        }
+      }
+      p.vx *= 0.98; p.vy *= 0.98;
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(167,139,250,' + p.alpha + ')';
+      ctx.fill();
+    });
+    // Connection lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(167,139,250,' + ((1 - dist / 100) * 0.08) + ')';
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+}
+
+document.querySelectorAll('.particle-canvas').forEach(c => {
+  initParticles(c, { interactive: true, count: 50 });
+});
+document.querySelectorAll('.particle-canvas-ambient').forEach(c => {
+  initParticles(c, { interactive: false, count: 16 });
+});
+
+// Resize handler
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.particle-canvas, .particle-canvas-ambient').forEach(c => {
+    c.width = c.offsetWidth;
+    c.height = c.offsetHeight;
+  });
+});
+</script>
+</body>
+</html>
