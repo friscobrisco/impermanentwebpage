@@ -2,140 +2,80 @@
 
 ## Overview
 
-A custom visualization dashboard built on top of the [TimeCopilot/ImpermanentLeaderboard](https://huggingface.co/spaces/TimeCopilot/ImpermanentLeaderboard) HuggingFace Space. The original Space uses Gradio 5.x with matplotlib plots. This dashboard extracts the raw data via the Gradio API and re-presents it using Chart.js in a single static HTML file with interactive controls.
+A visualization dashboard for the Impermanent time-series forecasting benchmark. Evaluation results are stored as a Parquet file in S3, fetched by a Python pipeline, and rendered into a single static HTML file with interactive Chart.js visualizations.
 
-**Stack:** Single `index.html` file, Chart.js (CDN), Inter font (Google Fonts), CSS custom properties for theming  
-**Data:** 12 models × 4 subdatasets × 4 frequencies × 13 cutoff dates × 2 metrics  
+**Stack:** Python data pipeline (`fetch_data.py` → `generate_html.py`) producing a single `index.html`, Chart.js (CDN), Inter font (Google Fonts), CSS custom properties for theming
+**Data source:** `s3://impermanent-benchmark/v0.1.0/gh-archive/evaluations/evaluation_results.parquet`
+**Data shape:** 12 models × 4 subdatasets × 4 frequencies × ~30 cutoff dates × 2 metrics
 **Theme:** White + violet accents (light/dark mode)
 
 ---
 
-## 1. Data Source & API Calls
+## 1. Data Source & Pipeline
 
-### Base URL
+### S3 Parquet File
 
 ```
-https://timecopilot-impermanentleaderboard.hf.space
+s3://impermanent-benchmark/v0.1.0/gh-archive/evaluations/evaluation_results.parquet
 ```
 
-### Request 1 — GET /config (MASE data, free)
+The parquet file contains evaluation results with the following columns:
 
-```bash
-curl 'https://timecopilot-impermanentleaderboard.hf.space/config'
-```
-
-**What it returns:** The full Gradio app config (~49KB JSON). Inside the `components` array (22 total), one component of type `dataframe` contains the default results table pre-rendered with MASE values.
-
-**Where the data lives in the response:**
-```
-response.components[]
-  .filter(c => c.component === "dataframe")
-  .props.value → { headers: [...], data: [[...], ...] }
-```
-
-**Extracted structure:**
 | Column | Type | Description |
 |--------|------|-------------|
-| subdataset | string | `issues_opened`, `prs_opened`, `pushes`, `stars` |
-| frequency | string | `daily`, `hourly`, `monthly`, `weekly` |
-| cutoff | string | Date identifier, e.g. `2026-01-04-00` |
-| AutoARIMA…ZeroModel | float | MASE score for each of the 12 models |
+| `subdataset` | string | `issues_opened`, `prs_opened`, `pushes`, `stars` |
+| `frequency` | string | `daily`, `hourly`, `monthly`, `weekly` |
+| `cutoff` | string | Date identifier, e.g. `2026-01-04` or `2026-01-04-00` |
+| `metric` | string | `mase` or `scaled_crps` |
+| `model_alias` | string | One of the 12 model names |
+| `value` | float | The metric score |
 
-**Dimensions:** 15 columns × 68 rows
+### Pipeline Steps
 
-**Sample row:**
-```json
-["issues_opened", "daily", "2026-01-04-00", 0.426, 0.323, 0.403, 0.167, 0.323, 0.794, 0.163, 0.471, 0.173, 0.159, 0.14, 0.099]
-```
+#### Step 1: `scripts/fetch_data.py` — Fetch & Transform
 
----
+1. **Download** the parquet file from S3 using `boto3`
+2. **Normalize cutoffs** — append `-00` to date-only cutoff strings for consistency
+3. **Filter to last 3 months** — only keep cutoffs within 90 days of the latest date
+4. **Clamp extreme values** — values with `abs(v) >= 1e6` are set to `0` (handles scientific notation outliers)
+5. **Build records** — restructure flat rows into `{subdataset, frequency, cutoff, values: {model: score}}` objects for both MASE and SCALED_CRPS
+6. **Compute summary** — calculate per-model average metrics and average ranks, assign medal emojis to top 3
+7. **Write** `data/leaderboard.json`
 
-### Request 2 — GET /gradio_api/info (Schema discovery)
+**Dependencies:** `boto3`, `pandas`, `pyarrow` (see `requirements.txt`)
 
-```bash
-curl 'https://timecopilot-impermanentleaderboard.hf.space/gradio_api/info'
-```
+**Environment variables required:**
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_DEFAULT_REGION` (defaults to `us-east-1`)
 
-**Purpose:** Discover available API endpoints and their parameter schemas.
+#### Step 2: `scripts/generate_html.py` — Generate HTML
 
-**Named endpoints found:**
-| Endpoint | Returns | Useful? |
-|----------|---------|---------|
-| `/update_plots` | matplotlib Plot objects | No (images, not data) |
-| `/update_plots_1`, `_2` | Same | No |
-| `/build_table` | `{headers, data}` Dataframe | **Yes** |
-| `/build_table_1`, `_2`, `_3` | Same schema (different tabs) | Redundant |
+1. **Read** `data/leaderboard.json`
+2. **Read** `templates/dashboard.html`
+3. **Inject data** — replace the `/* __DATA_PLACEHOLDER__ */` marker in the template with `const DATA = <compact JSON>;`
+4. **Write** `index.html`
 
-**`/build_table` parameter schema:**
-```
-[0] metric:     Literal["mase", "scaled_crps"]                                    default="mase"
-[1] subdataset: Literal["All", "issues_opened", "prs_opened", "pushes", "stars"]   default="All"
-[2] frequency:  Literal["All", "daily", "hourly", "monthly", "weekly"]             default="All"
-[3] models:     list[Literal["AutoARIMA", "AutoCES", ..., "ZeroModel"]]            default=all 12
-```
+### GitHub Actions Workflow
 
-**Return type:**
-```json
-{
-  "headers": ["subdataset", "frequency", "cutoff", "AutoARIMA", ...],
-  "data": [["issues_opened", "daily", "2026-01-04-00", 0.426, ...], ...],
-  "metadata": null
-}
-```
+`.github/workflows/update-leaderboard.yml` runs the full pipeline:
+
+- **Schedule:** Every Sunday at 23:00 UTC
+- **Trigger:** Manual via `workflow_dispatch`
+- **Steps:** Checkout → Setup Python 3.12 → Install deps → Fetch S3 data → Generate HTML → Commit changes → Deploy to GitHub Pages
 
 ---
 
-### Request 3 — POST + GET /gradio_api/call/build_table (SCALED_CRPS data)
+## 2. Data Structure (Embedded in HTML)
 
-This uses the Gradio 5.x queue pattern (two-step: submit → poll).
-
-**Step 1 — Submit:**
-```bash
-curl -X POST \
-  'https://timecopilot-impermanentleaderboard.hf.space/gradio_api/call/build_table' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "data": [
-      "scaled_crps",
-      "All",
-      "All",
-      ["AutoARIMA", "AutoCES", "AutoETS", "Chronos",
-       "DynamicOptimizedTheta", "HistoricAverage", "Moirai",
-       "Prophet", "SeasonalNaive", "TiRex", "TimesFM", "ZeroModel"]
-    ]
-  }'
-```
-
-**Response:**
-```json
-{"event_id": "f177351727134a70bf616386253b6db0"}
-```
-
-**Step 2 — Fetch result (SSE stream):**
-```bash
-curl 'https://timecopilot-impermanentleaderboard.hf.space/gradio_api/call/build_table/{event_id}'
-```
-
-**Response format (Server-Sent Events):**
-```
-event: complete
-data: [{"headers": ["subdataset", "frequency", "cutoff", ...], "data": [[...], ...]}]
-```
-
-Same 15 columns × 68 rows structure as MASE, but with SCALED_CRPS values. Note: some CRPS values are extremely large (e.g. `9,209,777,706` for Moirai on certain cutoffs) due to the nature of the metric.
-
----
-
-## 2. Data Transformation (Embedded in HTML)
-
-All raw data from both API calls is embedded as a single `DATA` object in the HTML file:
+All data from the pipeline is embedded as a single `DATA` object in `index.html`:
 
 ```javascript
 const DATA = {
   models: ["AutoARIMA", "AutoCES", "AutoETS", "Chronos",
            "DynamicOptimizedTheta", "HistoricAverage", "Moirai",
            "Prophet", "SeasonalNaive", "TiRex", "TimesFM", "ZeroModel"],
-  cutoffs: ["2025-10-01-00", "2025-11-01-00", ..., "2026-02-12-00"],  // 13 dates
+  cutoffs: ["2026-01-01-00", "2026-01-04-00", ..., "2026-03-14-00"],
   subdatasets: ["issues_opened", "prs_opened", "pushes", "stars"],
   frequencies: ["daily", "hourly", "monthly", "weekly"],
   mase: [
@@ -147,15 +87,14 @@ const DATA = {
     // Same structure, SCALED_CRPS values
   ],
   summary: [
-    {model: "🥇 TimesFM", avg_mase: 0.171, avg_crps: 1.055},
-    {model: "🥈 ZeroModel", avg_mase: 0.143, avg_crps: 1.000},
-    {model: "🥉 TiRex",    avg_mase: 0.162, avg_crps: 2.270},
+    {model: "🥇 ZeroModel", avg_mase: 0.043, avg_crps: 0.517, rank_mase: 1.5, rank_crps: 1.0},
+    {model: "🥈 Moirai",    avg_mase: 0.163, avg_crps: 1.170, rank_mase: 3.2, rank_crps: 2.8},
     ...
   ]
 }
 ```
 
-The original flat table rows (68 each for MASE and CRPS) were restructured into objects with a `values` map for easier per-model access.
+**Note:** ZeroModel is a baseline model. It is included in the data but excluded from the summary cards (top 3 podium) and championship standings in the frontend.
 
 ---
 
@@ -175,11 +114,9 @@ For cutoff C:
   For each (subdataset, frequency) row at cutoff C:
     Sort models by value ascending
     Assign rank_i = position (1-based)
-  
+
   avgRank(model, C) = Σ rank_i(model) / count(rows at C)
 ```
-
-**Example:** If TimesFM gets rank 1 in `issues_opened/daily` and rank 3 in `prs_opened/weekly` at the same cutoff, its average rank for that cutoff = (1+3)/2 = 2.0.
 
 The "Avg Rank" view on the main chart inverts the Y-axis (1 at top, 12 at bottom) since lower rank is better.
 
@@ -187,7 +124,7 @@ The "Avg Rank" view on the main chart inverts the Y-axis (1 at top, 12 at bottom
 
 ### 3.2 Raw Value Over Time (`computeRawOverTime`)
 
-Simpler: for each (model, cutoff), average the raw metric value across all matching (subdataset, frequency) groups.
+For each (model, cutoff), average the raw metric value across all matching (subdataset, frequency) groups.
 
 ```
 rawAvg(model, C) = Σ value(model, subdataset, frequency, C) / count(rows at C)
@@ -195,40 +132,23 @@ rawAvg(model, C) = Σ value(model, subdataset, frequency, C) / count(rows at C)
 
 **Outlier handling (CRPS only):** When the max raw CRPS value exceeds 100, values are capped at the 95th percentile × 1.1 (minimum cap of 10) to prevent extreme outliers from compressing the chart.
 
-```javascript
-cap = max(percentile95 * 1.1, 10)
-displayValue = min(actualValue, cap)
-```
-
 ---
 
 ### 3.3 Championship Points (`computeChampionshipPoints`)
 
-A Formula 1-style points system applied to weekly rankings:
+A Formula 1-style points system applied to weekly rankings. **ZeroModel is excluded** from this computation.
 
 1. For each cutoff (week):
    a. Compute average rank across all (subdataset, frequency) groups (same as §3.1)
-   b. Re-rank the average ranks to get clean 1–12 positions
-   c. Award points: `points = N_models + 1 - position` (12 for 1st, 11 for 2nd, ..., 1 for 12th)
+   b. Re-rank the average ranks to get clean 1–11 positions
+   c. Award points: `points = N_models - position_index` (11 for 1st, 10 for 2nd, ..., 1 for 11th)
 2. Accumulate points cumulatively across weeks
-
-```
-For cutoff C:
-  avgRanks = computeAvgRank(allModels, C)                    // from §3.1
-  sortedModels = sort(models, by avgRanks ascending)
-  For position i (0-based):
-    weekPoints(sortedModels[i]) = N_models - i              // 12, 11, 10, ..., 1
-  
-  cumPoints(model, C) = cumPoints(model, C-1) + weekPoints(model)
-```
-
-**Example:** If TimesFM finishes 1st in week 5, it gets 12 points that week. If its cumulative total was 55 after week 4, it's now 67 after week 5.
 
 ---
 
 ### 3.4 Championship Standings Table (`renderChampStandings`)
 
-Derived from the championship points computation:
+**ZeroModel is excluded.** Derived from the championship points computation:
 
 | Column | Formula |
 |--------|---------|
@@ -242,7 +162,7 @@ Derived from the championship points computation:
 
 ### 3.5 Rank Stability Heatmap (`renderHeatmap`)
 
-Same average-rank-per-cutoff computation as §3.1, but displayed as a color-coded grid instead of a line chart.
+Same average-rank-per-cutoff computation as §3.1, displayed as a color-coded grid.
 
 **Color gradient** (5-stop, interpolated):
 ```
@@ -253,17 +173,13 @@ Rank ~9         → #FF8A65 (coral)
 Rank 12 (worst) → #D32F6B (rose)
 ```
 
-**Interpolation:**
-```javascript
-t = (rank - 1) / (N_models - 1)    // 0 = best, 1 = worst
-segment = t * (stops.length - 1)    // which pair of stops
-localT = segment - floor(segment)   // interpolation factor within pair
-color = lerp(stops[floor], stops[ceil], localT)  // per-channel RGB lerp
-```
-
-**Text color:** White for dark cells (t < 0.35 or t > 0.80), dark (#1E1333) for light cells.
-
 **Row sorting:** Models sorted by overall average rank across all cutoffs (best first).
+
+---
+
+### 3.6 Summary Cards
+
+The top 3 models are displayed as podium cards with gold/silver/bronze medals. **ZeroModel is excluded** — the cards show the top 3 non-baseline models by combined average rank (average of MASE rank and CRPS rank).
 
 ---
 
@@ -325,11 +241,6 @@ The dashboard uses CSS custom properties with a `data-theme` attribute on `<html
 --color-text-muted: #CEBEFF;
 ```
 
-Chart.js tooltip/grid colors are hardcoded per-theme in each render function (Chart.js doesn't read CSS variables), checked via:
-```javascript
-const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-```
-
 Theme toggle re-renders all 4 visual sections: main chart, championship chart, championship standings, and heatmap.
 
 ---
@@ -367,10 +278,10 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 
 ## 7. Dashboard Sections
 
-1. **Summary Cards** — Top 3 models (from pre-computed `DATA.summary`) with gold/silver/bronze medals, avg MASE and avg CRPS
-2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency controls
-3. **Championship Points Race** — Cumulative F1-style points line chart with own metric toggle
-4. **Championship Standings** — Leaderboard table with rank medals, total points, avg rank, best/worst week, and color-coded points bars
+1. **Summary Cards** — Top 3 non-baseline models with gold/silver/bronze medals, avg MASE and avg CRPS
+2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency controls (all 12 models including ZeroModel)
+3. **Championship Points Race** — Cumulative F1-style points line chart with own metric toggle (ZeroModel excluded)
+4. **Championship Standings** — Leaderboard table with rank medals, total points, avg rank, best/worst week, and color-coded points bars (ZeroModel excluded)
 5. **Rank Stability Heatmap** — Color-coded grid of average rank per model per cutoff week
 6. **Detailed Results** — Sortable table showing raw metric values for the latest cutoff date per filter
 
@@ -379,16 +290,23 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 ## 8. File Structure
 
 ```
-leaderboard-viz/
-└── index.html          # Single file (~1400 lines), contains:
-                        #   - CSS (design tokens, components, responsive)
-                        #   - HTML (header, cards, charts, tables, heatmap)
-                        #   - JavaScript (data, computations, rendering, controls)
-                        #   - Embedded DATA object (both MASE and CRPS datasets)
+impermanentwebpage/
+├── .github/workflows/
+│   └── update-leaderboard.yml    # GitHub Actions: weekly S3 fetch + deploy
+├── scripts/
+│   ├── fetch_data.py             # Download parquet from S3 → data/leaderboard.json
+│   └── generate_html.py          # Inject JSON into template → index.html
+├── templates/
+│   └── dashboard.html            # HTML template with /* __DATA_PLACEHOLDER__ */
+├── data/
+│   ├── evaluation_results.parquet # Raw evaluation data (local copy)
+│   └── leaderboard.json          # Processed JSON for the dashboard
+├── index.html                    # Generated output (committed by CI)
+├── requirements.txt              # boto3, pandas, pyarrow
+├── tc.png                        # TimeCopilot logo
+└── tcwh.png                      # TimeCopilot logo (white variant)
 ```
 
 **External dependencies (CDN):**
 - `chart.js@4.4.7` — charting library
 - `Inter` font — Google Fonts
-
-No build step, no bundler, no framework. Just open the HTML file.
