@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "pdf-lib": "^1.17.1",
-    "puppeteer": "^24.38.0"
-  }
-}
