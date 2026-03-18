@@ -46,7 +46,10 @@ def build_records(df, metric_name):
         values = {}
         for _, row in grp.iterrows():
             v = row["value"]
-            values[row["model_alias"]] = None if pd.isna(v) else round(v, 3)
+            if pd.isna(v) or abs(v) >= 1e6:
+                values[row["model_alias"]] = None if pd.isna(v) else 0
+            else:
+                values[row["model_alias"]] = round(v, 3)
         records.append({
             "subdataset": sub,
             "frequency": freq,
