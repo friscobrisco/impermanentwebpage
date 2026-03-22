@@ -24,7 +24,7 @@ The parquet file contains evaluation results with the following columns:
 | Column | Type | Description |
 |--------|------|-------------|
 | `subdataset` | string | `issues_opened`, `prs_opened`, `pushes`, `stars` |
-| `frequency` | string | `daily`, `hourly`, `monthly`, `weekly` |
+| `frequency` | string | `daily`, `monthly`, `weekly` |
 | `cutoff` | string | Date identifier, e.g. `2026-01-04` or `2026-01-04-00` |
 | `metric` | string | `mase` or `scaled_crps` |
 | `model_alias` | string | One of the 12 model names |
@@ -77,7 +77,7 @@ const DATA = {
            "Prophet", "SeasonalNaive", "TiRex", "TimesFM", "ZeroModel"],
   cutoffs: ["2026-01-01-00", "2026-01-04-00", ..., "2026-03-14-00"],
   subdatasets: ["issues_opened", "prs_opened", "pushes", "stars"],
-  frequencies: ["daily", "hourly", "monthly", "weekly"],
+  frequencies: ["daily", "monthly", "weekly"],
   mase: [
     {subdataset: "issues_opened", frequency: "daily", cutoff: "2026-01-04-00",
      values: {AutoARIMA: 0.426, AutoCES: 0.323, ...}},
@@ -253,7 +253,7 @@ let state = {
   metric: 'mase',       // mase | crps — main chart + table
   view: 'rank',         // rank | raw — main chart
   subdataset: 'all',    // all | issues_opened | prs_opened | pushes | stars
-  frequency: 'all',     // all | daily | hourly | monthly | weekly
+  frequency: 'all',     // all | daily | monthly | weekly
   sortCol: null,        // table column sort
   sortDir: 'asc'        // asc | desc
 };
