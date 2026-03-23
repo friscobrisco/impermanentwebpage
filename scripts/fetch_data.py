@@ -19,6 +19,27 @@ import pandas as pd
 S3_BUCKET = "impermanent-benchmark"
 S3_KEY = "v0.1.0/gh-archive/evaluations/evaluation_results.parquet"
 
+# UI category per model: foundation FM, classical statistical, or baseline heuristics
+MODEL_FAMILY_BY_NAME = {
+    "Chronos": "foundation",
+    "Moirai": "foundation",
+    "TiRex": "foundation",
+    "TimesFM": "foundation",
+    "AutoARIMA": "statistical",
+    "AutoCES": "statistical",
+    "AutoETS": "statistical",
+    "Prophet": "statistical",
+    "DynamicOptimizedTheta": "statistical",
+    "SeasonalNaive": "baseline",
+    "HistoricAverage": "baseline",
+    "ZeroModel": "baseline",
+}
+
+
+def build_model_family(models: list) -> dict:
+    """Map each model alias to foundation | statistical | baseline (default statistical)."""
+    return {m: MODEL_FAMILY_BY_NAME.get(m, "statistical") for m in models}
+
 
 def fetch_parquet():
     """Download parquet from S3 and return a DataFrame."""
@@ -78,7 +99,11 @@ def build_records(df, metric_name):
 
 
 def compute_summary(mase_records, crps_records, models):
-    """Compute summary stats: average metric and average rank per model."""
+    """Compute summary stats: average metric and average rank per model.
+
+    Podium order uses MASE average rank only (lower is better). CRPS stats are
+    still shown on the cards but do not affect medal ordering.
+    """
 
     def avg_metric_and_rank(records, models):
         model_vals = {m: [] for m in models}
@@ -115,15 +140,7 @@ def compute_summary(mase_records, crps_records, models):
 
     summary = []
     for m in models:
-        combined = 0
-        count = 0
-        if mase_rank[m] is not None:
-            combined += mase_rank[m]
-            count += 1
-        if crps_rank[m] is not None:
-            combined += crps_rank[m]
-            count += 1
-        combined_rank = combined / count if count > 0 else 999
+        sort_key = mase_rank[m] if mase_rank[m] is not None else 999
 
         summary.append({
             "model": m,
@@ -131,10 +148,16 @@ def compute_summary(mase_records, crps_records, models):
             "avg_crps": round(crps_avg[m], 3) if crps_avg[m] is not None else None,
             "rank_mase": round(mase_rank[m], 3) if mase_rank[m] is not None else None,
             "rank_crps": round(crps_rank[m], 3) if crps_rank[m] is not None else None,
-            "_combined": combined_rank,
+            "_combined": sort_key,
         })
 
-    summary.sort(key=lambda x: x["_combined"])
+    # Tie-break: lower average MASE wins
+    summary.sort(
+        key=lambda x: (
+            x["_combined"],
+            x["avg_mase"] if x["avg_mase"] is not None else 999,
+        )
+    )
 
     medals = ["\U0001f947", "\U0001f948", "\U0001f949"]
     for i, s in enumerate(summary):
@@ -192,6 +215,7 @@ def main():
 
     data = {
         "models": models,
+        "model_family": build_model_family(models),
         "cutoffs": cutoffs,
         "subdatasets": subdatasets,
         "frequencies": frequencies,

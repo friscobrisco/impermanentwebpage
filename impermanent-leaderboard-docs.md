@@ -38,9 +38,10 @@ The parquet file contains evaluation results with the following columns:
 2. **Normalize cutoffs** — append `-00` to date-only cutoff strings for consistency
 3. **Filter to last 3 months** — only keep cutoffs within 90 days of the latest date
 4. **Clamp extreme values** — values with `abs(v) >= 1e6` are set to `0` (handles scientific notation outliers)
-5. **Build records** — restructure flat rows into `{subdataset, frequency, cutoff, values: {model: score}}` objects for both MASE and SCALED_CRPS
-6. **Compute summary** — calculate per-model average metrics and average ranks, assign medal emojis to top 3
-7. **Write** `data/leaderboard.json`
+5. **Build records** — restructure flat rows into `{subdataset, frequency, sparsity_level, cutoff, values: {model: score}}` objects for both MASE and SCALED_CRPS
+6. **Model categories** — add `model_family` per model (`foundation`, `statistical`, or `baseline`) for UI badges
+7. **Compute summary** — calculate per-model average metrics and average ranks; order podium by **MASE** average rank (assign medal emojis to top 3)
+8. **Write** `data/leaderboard.json`
 
 **Dependencies:** `boto3`, `pandas`, `pyarrow` (see `requirements.txt`)
 
@@ -75,6 +76,9 @@ const DATA = {
   models: ["AutoARIMA", "AutoCES", "AutoETS", "Chronos",
            "DynamicOptimizedTheta", "HistoricAverage", "Moirai",
            "Prophet", "SeasonalNaive", "TiRex", "TimesFM", "ZeroModel"],
+  model_family: { Chronos: "foundation", TiRex: "foundation", /* … */,
+                  AutoARIMA: "statistical", /* … */,
+                  ZeroModel: "baseline", SeasonalNaive: "baseline", HistoricAverage: "baseline" },
   cutoffs: ["2026-01-01-00", "2026-01-04-00", ..., "2026-03-14-00"],
   subdatasets: ["issues_opened", "prs_opened", "pushes", "stars"],
   frequencies: ["daily", "monthly", "weekly"],
@@ -95,6 +99,8 @@ const DATA = {
 ```
 
 The `sparsity_levels` array is ordered **low → medium → high** (case-insensitive); any other labels appear after those, sorted alphabetically.
+
+`model_family` maps each model name to `foundation` (neural FMs), `statistical` (classical / auto methods), or `baseline` (Seasonal Naive, Historic Average, Zero). Unknown names default to `statistical` in the pipeline.
 
 **Note:** ZeroModel is a baseline model. It is included in the data but excluded from the summary cards (top 3 podium) and championship standings in the frontend.
 
@@ -181,7 +187,7 @@ Rank 12 (worst) → #D32F6B (rose)
 
 ### 3.6 Summary Cards
 
-The top 3 models are displayed as podium cards with gold/silver/bronze medals. **ZeroModel is excluded** — the cards show the top 3 non-baseline models by combined average rank (average of MASE rank and CRPS rank).
+The top 3 models are displayed as podium cards with gold/silver/bronze medals. **ZeroModel is excluded** — the cards show the top 3 non-baseline models by **average MASE rank** (ties broken by lower average MASE). Avg CRPS is shown on each card but does not order the podium.
 
 ---
 
