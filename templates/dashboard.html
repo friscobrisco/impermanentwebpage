@@ -856,14 +856,14 @@ td.best-value {
         <option value="issues_opened">issues_opened</option>
         <option value="prs_opened">prs_opened</option>
         <option value="pushes">pushes</option>
-        <option value="stars">stars</option>
+        <option value="stars" selected>stars</option>
       </select>
     </div>
     <div class="control-group">
       <span class="control-label">Frequency</span>
       <select class="control-select" id="frequencyFilter">
         <option value="all">All Frequencies</option>
-        <option value="daily">daily</option>
+        <option value="daily" selected>daily</option>
         <option value="monthly">monthly</option>
         <option value="weekly">weekly</option>
       </select>
@@ -1013,9 +1013,9 @@ function getColor(i) { return CHART_COLORS[i % CHART_COLORS.length]; }
 let state = {
   metric: 'mase',
   view: 'rank',
-  subdataset: 'all',
-  frequency: 'all',
-  sparsity_level: 'all',
+  subdataset: 'stars',
+  frequency: 'daily',
+  sparsity_level: 'low',
   sortCol: null,
   sortDir: 'asc'
 };
@@ -1760,6 +1760,11 @@ function populateSparsityLevelOptions() {
     o.textContent = lv;
     sel.appendChild(o);
   });
+  sel.value = state.sparsity_level;
+  if (sel.selectedIndex < 0) {
+    state.sparsity_level = 'all';
+    sel.value = 'all';
+  }
 }
 
 function updateCrpsMetricTooltips() {

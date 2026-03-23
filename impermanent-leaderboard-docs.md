@@ -94,6 +94,8 @@ const DATA = {
 }
 ```
 
+The `sparsity_levels` array is ordered **low → medium → high** (case-insensitive); any other labels appear after those, sorted alphabetically.
+
 **Note:** ZeroModel is a baseline model. It is included in the data but excluded from the summary cards (top 3 podium) and championship standings in the frontend.
 
 ---
@@ -252,8 +254,9 @@ Theme toggle re-renders all 4 visual sections: main chart, championship chart, c
 let state = {
   metric: 'mase',       // mase | crps — main chart + table
   view: 'rank',         // rank | raw — main chart
-  subdataset: 'all',    // all | issues_opened | prs_opened | pushes | stars
-  frequency: 'all',     // all | daily | monthly | weekly
+  subdataset: 'stars',  // default slice; all | issues_opened | prs_opened | pushes | stars
+  frequency: 'daily',   // default; all | daily | monthly | weekly
+  sparsity_level: 'low', // default; all | values from DATA.sparsity_levels
   sortCol: null,        // table column sort
   sortDir: 'asc'        // asc | desc
 };
@@ -269,6 +272,7 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 | View pill (rank/raw) | `renderChart()` + `renderTable()` |
 | Dataset dropdown | `renderChart()` + `renderTable()` |
 | Frequency dropdown | `renderChart()` + `renderTable()` |
+| Sparsity dropdown | `renderChart()` + `renderTable()` |
 | Champ metric pill | `renderChampChart()` + `renderChampStandings()` |
 | Heatmap metric pill | `renderHeatmap()` |
 | Theme toggle | All of the above |
@@ -279,7 +283,7 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 ## 7. Dashboard Sections
 
 1. **Summary Cards** — Top 3 non-baseline models with gold/silver/bronze medals, avg MASE and avg CRPS
-2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency controls (all 12 models including ZeroModel)
+2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency/sparsity controls (all 12 models including ZeroModel)
 3. **Championship Points Race** — Cumulative F1-style points line chart with own metric toggle (ZeroModel excluded)
 4. **Championship Standings** — Leaderboard table with rank medals, total points, avg rank, best/worst week, and color-coded points bars (ZeroModel excluded)
 5. **Rank Stability Heatmap** — Color-coded grid of average rank per model per cutoff week
