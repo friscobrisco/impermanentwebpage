@@ -922,12 +922,12 @@ function renderSummaryCards() {
       <div class="model-name">${m.model}</div>
       <div class="metrics">
         <div class="metric-box">
-          <div class="metric-label">Champ. Points</div>
-          <div class="metric-value">${m.totalPts}</div>
-        </div>
-        <div class="metric-box">
           <div class="metric-label">Avg MASE</div>
           <div class="metric-value">${m.summary ? m.summary.avg_mase.toFixed(3) : 'N/A'}</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Avg CRPS</div>
+          <div class="metric-value">${m.summary ? m.summary.avg_crps.toFixed(3) : 'N/A'}</div>
         </div>
       </div>
     </div>`;
