@@ -722,12 +722,6 @@ td.best-value {
     </div>
   </header>
 
-  <!-- SNAPSHOT BANNER -->
-  <div class="snapshot-banner">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    <span>Showing a <strong>3-month rolling snapshot</strong> of model performance across 4 GitHub activity datasets and 4 time frequencies. For access to historical data, <a href="https://form.typeform.com/to/PYKVUpaL" target="_blank" rel="noopener noreferrer" class="snapshot-link">contact us</a>.</span>
-  </div>
-
   <!-- SUMMARY CARDS -->
   <div class="summary-row" id="summaryCards"></div>
 
@@ -756,15 +750,14 @@ td.best-value {
         <option value="issues_opened">issues_opened</option>
         <option value="prs_opened">prs_opened</option>
         <option value="pushes">pushes</option>
-        <option value="stars">stars</option>
+        <option value="stars" selected>stars</option>
       </select>
     </div>
     <div class="control-group">
       <span class="control-label">Frequency</span>
       <select class="control-select" id="frequencyFilter">
         <option value="all">All Frequencies</option>
-        <option value="daily">daily</option>
-        <option value="hourly">hourly</option>
+        <option value="daily" selected>daily</option>
         <option value="monthly">monthly</option>
         <option value="weekly">weekly</option>
       </select>
@@ -883,14 +876,26 @@ const CHART_COLORS = [
 ];
 function getColor(i) { return CHART_COLORS[i % CHART_COLORS.length]; }
 
+// Model categories for line styles
+const MODEL_CATEGORIES = {
+  foundation: new Set(['Chronos', 'Moirai', 'TiRex', 'TimesFM']),
+  baseline:   new Set(['HistoricAverage', 'SeasonalNaive', 'ZeroModel'])
+};
+// statistical = everything else (solid line)
+function getLineStyle(model) {
+  if (MODEL_CATEGORIES.foundation.has(model)) return { borderDash: [6, 3] };   // dashed
+  if (MODEL_CATEGORIES.baseline.has(model))   return { borderDash: [2, 2] };   // dotted
+  return { borderDash: [] };                                                    // solid
+}
+
 // ===========================================================================
 // STATE
 // ===========================================================================
 let state = {
   metric: 'mase',
   view: 'rank',
-  subdataset: 'all',
-  frequency: 'all',
+  subdataset: 'stars',
+  frequency: 'daily',
   sortCol: null,
   sortDir: 'asc'
 };
@@ -900,21 +905,29 @@ let state = {
 // ===========================================================================
 function renderSummaryCards() {
   const medals = ['🥇', '🥈', '🥉'];
-  const top3 = DATA.summary.filter(m => !/ZeroModel/i.test(m.model)).slice(0, 3);
+  // Use championship points (MASE) to determine top 3
+  const { cumPoints } = computeChampionshipPoints('mase');
+  const champModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  const ranked = champModels.map(m => {
+    const pts = cumPoints[m];
+    const totalPts = pts[pts.length - 1] || 0;
+    const summary = DATA.summary.find(s => s.model.replace(/^(?:🥇|🥈|🥉)\s*/, '') === m);
+    return { model: m, totalPts, summary };
+  }).sort((a, b) => b.totalPts - a.totalPts);
+  const top3 = ranked.slice(0, 3);
   const html = top3.map((m, i) => {
-    const name = m.model.replace(/^(?:🥇|🥈|🥉)\s*/, '');
     return `
     <div class="summary-card">
       <div class="medal">${medals[i]}</div>
-      <div class="model-name">${name}</div>
+      <div class="model-name">${m.model}</div>
       <div class="metrics">
         <div class="metric-box">
-          <div class="metric-label">Avg MASE</div>
-          <div class="metric-value">${m.avg_mase.toFixed(3)}</div>
+          <div class="metric-label">Champ. Points</div>
+          <div class="metric-value">${m.totalPts}</div>
         </div>
         <div class="metric-box">
-          <div class="metric-label">Avg CRPS</div>
-          <div class="metric-value">${m.avg_crps.toFixed(3)}</div>
+          <div class="metric-label">Avg MASE</div>
+          <div class="metric-value">${m.summary ? m.summary.avg_mase.toFixed(3) : 'N/A'}</div>
         </div>
       </div>
     </div>`;
@@ -1065,7 +1078,7 @@ function renderChart() {
 
   if (isRank) {
     modelData = computeRankOverTime(rows);
-    yLabel = 'Average Rank';
+    yLabel = 'Average Rank ↓';
     noteText = 'Lower rank is better (1 = best). Click legend items to show/hide models.';
     reverseY = true;
   } else {
@@ -1089,7 +1102,16 @@ function renderChart() {
     }
   }
 
-  const datasets = DATA.models.map((m, i) => {
+  // Sort models by average performance (best first)
+  const modelAvgs = DATA.models.map(m => {
+    const vals = cutoffs.map(c => modelData[m][c]).filter(v => v !== undefined && v !== null);
+    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : Infinity;
+    return { model: m, avg };
+  });
+  modelAvgs.sort((a, b) => a.avg - b.avg);
+  const sortedModels = modelAvgs.map(x => x.model);
+
+  const datasets = sortedModels.map((m, i) => {
     const color = getColor(i);
     const points = cutoffs.map(c => modelData[m][c] !== undefined ? modelData[m][c] : null);
     return {
@@ -1103,7 +1125,8 @@ function renderChart() {
       pointBackgroundColor: color,
       tension: 0.3,
       spanGaps: true,
-      hidden: false
+      hidden: false,
+      ...getLineStyle(m)
     };
   });
 
@@ -1113,15 +1136,47 @@ function renderChart() {
   const gridColor = isDark ? 'rgba(206,190,255,0.08)' : 'rgba(88,50,168,0.06)';
   const textColor = isDark ? '#CEBEFF' : '#4A3D6B';
 
+  // Plugin: draw model name after last data point
+  const endLabelPlugin = {
+    id: 'endLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c } = chart;
+      chart.data.datasets.forEach((ds, idx) => {
+        const meta = chart.getDatasetMeta(idx);
+        if (meta.hidden) return;
+        // Find last non-null point
+        let lastPt = null;
+        for (let j = meta.data.length - 1; j >= 0; j--) {
+          if (ds.data[j] !== null && ds.data[j] !== undefined) {
+            lastPt = meta.data[j];
+            break;
+          }
+        }
+        if (!lastPt) return;
+        c.save();
+        c.font = "500 10px 'Inter', sans-serif";
+        c.fillStyle = ds.borderColor;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.fillText(ds.label, lastPt.x + 6, lastPt.y);
+        c.restore();
+      });
+    }
+  };
+
   if (chartInstance) chartInstance.destroy();
 
   const ctx = document.getElementById('mainChart').getContext('2d');
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
+    plugins: [endLabelPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { right: 120 }
+      },
       interaction: {
         mode: 'index',
         intersect: false
@@ -1133,11 +1188,10 @@ function renderChart() {
           labels: {
             color: textColor,
             font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
-            usePointStyle: true,
-            pointStyle: 'circle',
+            usePointStyle: false,
             padding: 16,
-            boxWidth: 8,
-            boxHeight: 8
+            boxWidth: 40,
+            boxHeight: 3
           }
         },
         tooltip: {
@@ -1350,8 +1404,7 @@ function renderChampChart() {
   const sortedModels = champModels.slice().sort((a, b) => finalPoints[b] - finalPoints[a]);
 
   const datasets = sortedModels.map((m, i) => {
-    const origIdx = DATA.models.indexOf(m);
-    const color = getColor(origIdx);
+    const color = getColor(i);
     return {
       label: `${m} (${finalPoints[m]} pts)`,
       data: cumPoints[m],
@@ -1362,9 +1415,37 @@ function renderChampChart() {
       pointHoverRadius: 6,
       pointBackgroundColor: color,
       tension: 0.3,
-      spanGaps: true
+      spanGaps: true,
+      ...getLineStyle(m)
     };
   });
+
+  // Plugin: draw model name after last data point
+  const champEndLabelPlugin = {
+    id: 'champEndLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c } = chart;
+      chart.data.datasets.forEach((ds, idx) => {
+        const meta = chart.getDatasetMeta(idx);
+        if (meta.hidden) return;
+        let lastPt = null;
+        for (let j = meta.data.length - 1; j >= 0; j--) {
+          if (ds.data[j] !== null && ds.data[j] !== undefined) {
+            lastPt = meta.data[j];
+            break;
+          }
+        }
+        if (!lastPt) return;
+        c.save();
+        c.font = "500 10px 'Inter', sans-serif";
+        c.fillStyle = ds.borderColor;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.fillText(ds.label, lastPt.x + 6, lastPt.y);
+        c.restore();
+      });
+    }
+  };
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const gridColor = isDark ? 'rgba(206,190,255,0.08)' : 'rgba(88,50,168,0.06)';
@@ -1376,9 +1457,13 @@ function renderChampChart() {
   champChartInstance = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
+    plugins: [champEndLabelPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { right: 160 }
+      },
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
@@ -1386,8 +1471,8 @@ function renderChampChart() {
           labels: {
             color: textColor,
             font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
-            usePointStyle: true, pointStyle: 'circle',
-            padding: 16, boxWidth: 8, boxHeight: 8
+            usePointStyle: false,
+            padding: 16, boxWidth: 40, boxHeight: 3
           }
         },
         tooltip: {
