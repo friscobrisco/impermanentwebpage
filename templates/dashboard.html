@@ -323,6 +323,100 @@ a.meta-tag-link:hover {
   color: var(--color-text-faint);
   white-space: nowrap;
 }
+.control-label.metric-label-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.metric-crps-help {
+  display: inline-flex;
+  align-items: center;
+}
+.metric-crps-help[hidden] {
+  display: none !important;
+}
+.crps-warning-open {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(249, 168, 37, 0.55);
+  background: rgba(249, 168, 37, 0.12);
+  color: #C77800;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition-interactive), border-color var(--transition-interactive), transform 0.1s ease;
+}
+.crps-warning-open:hover {
+  background: rgba(249, 168, 37, 0.22);
+  border-color: rgba(249, 168, 37, 0.85);
+}
+.crps-warning-open:active {
+  transform: scale(0.96);
+}
+.crps-warning-open svg {
+  display: block;
+}
+[data-theme="dark"] .crps-warning-open {
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.1);
+  color: #FFD54F;
+}
+[data-theme="dark"] .crps-warning-open:hover {
+  background: rgba(255, 193, 7, 0.18);
+  border-color: rgba(255, 193, 7, 0.65);
+}
+
+.crps-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  left: auto;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: min(440px, calc(100vw - 48px));
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(249, 168, 37, 0.4);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  border-left: 4px solid #F9A825;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-12px);
+  transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+  pointer-events: none;
+}
+.crps-toast.crps-toast--visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+[data-theme="dark"] .crps-toast {
+  border-left-color: #FFC107;
+  border-color: rgba(255, 193, 7, 0.35);
+}
+.crps-toast__icon {
+  flex-shrink: 0;
+  color: #E65100;
+  margin-top: 1px;
+}
+[data-theme="dark"] .crps-toast__icon {
+  color: #FFD54F;
+}
+.crps-toast__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
 .pill-group {
   display: flex;
   gap: 4px;
@@ -736,7 +830,13 @@ td.best-value {
 
   <div class="controls" id="chartControls">
     <div class="control-group">
-      <span class="control-label">Metric</span>
+      <span class="control-label metric-label-inline">Metric
+        <span class="metric-crps-help" id="mainMetricCrpsHelp" hidden>
+            <button type="button" class="crps-warning-open" aria-label="Show CRPS caveat message again" title="Show message">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </span>
+      </span>
       <div class="pill-group" id="metricToggle">
         <button class="pill active" data-value="mase">MASE</button>
         <button class="pill" data-value="crps">SCALED_CRPS</button>
@@ -768,6 +868,12 @@ td.best-value {
         <option value="weekly">weekly</option>
       </select>
     </div>
+    <div class="control-group">
+      <span class="control-label">Sparsity</span>
+      <select class="control-select" id="sparsityLevelFilter">
+        <option value="all">All levels</option>
+      </select>
+    </div>
   </div>
 
   <div class="chart-wrapper">
@@ -782,7 +888,13 @@ td.best-value {
   <p class="section-subtitle">Points awarded per week: 12 pts for 1st, 11 for 2nd, ... 1 for 12th. Cumulative total shows who leads the overall race.</p>
   <div class="controls" id="champControls">
     <div class="control-group">
-      <span class="control-label">Metric</span>
+      <span class="control-label metric-label-inline">Metric
+        <span class="metric-crps-help" id="champMetricCrpsHelp" hidden>
+          <button type="button" class="crps-warning-open" aria-label="Show CRPS caveat message again" title="Show message">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </span>
+      </span>
       <div class="pill-group" id="champMetricToggle">
         <button class="pill active" data-value="mase">MASE</button>
         <button class="pill" data-value="crps">SCALED_CRPS</button>
@@ -823,7 +935,13 @@ td.best-value {
   <p class="section-subtitle">Average rank per model per week. Deeper violet = better rank. Spot consistency vs. volatility at a glance.</p>
   <div class="controls" id="heatmapControls">
     <div class="control-group">
-      <span class="control-label">Metric</span>
+      <span class="control-label metric-label-inline">Metric
+        <span class="metric-crps-help" id="heatmapMetricCrpsHelp" hidden>
+          <button type="button" class="crps-warning-open" aria-label="Show CRPS caveat message again" title="Show message">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </span>
+      </span>
       <div class="pill-group" id="heatmapMetricToggle">
         <button class="pill active" data-value="mase">MASE</button>
         <button class="pill" data-value="crps">SCALED_CRPS</button>
@@ -858,6 +976,13 @@ td.best-value {
     <p>&copy; 2026 Out of the Blue Labs, Inc. All rights reserved.</p>
   </footer>
 
+  <div id="crpsToast" class="crps-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="crps-toast__icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+    <p class="crps-toast__text">CRPS evaluates full predictive distributions. In intermittent count data, conservative forecasts (e.g., zero) can perform strongly.</p>
+  </div>
+
 </div>
 
 <script>
@@ -890,6 +1015,7 @@ let state = {
   view: 'rank',
   subdataset: 'all',
   frequency: 'all',
+  sparsity_level: 'all',
   sortCol: null,
   sortDir: 'asc'
 };
@@ -929,12 +1055,14 @@ function filterData(metricKey) {
   return src.filter(r => {
     if (state.subdataset !== 'all' && r.subdataset !== state.subdataset) return false;
     if (state.frequency !== 'all' && r.frequency !== state.frequency) return false;
+    const sl = r.sparsity_level ?? 'default';
+    if (state.sparsity_level !== 'all' && sl !== state.sparsity_level) return false;
     return true;
   });
 }
 
 function computeRankOverTime(rows) {
-  // Group by cutoff → within each (subdataset, frequency, cutoff), rank models
+  // Group by cutoff → within each (subdataset, frequency, sparsity_level, cutoff), rank models
   // Then average ranks across groups per (model, cutoff)
   const grouped = {};
   rows.forEach(r => {
@@ -948,7 +1076,7 @@ function computeRankOverTime(rows) {
 
   Object.keys(grouped).forEach(cutoff => {
     const groupRows = grouped[cutoff];
-    // For each row (subdataset+frequency combo), rank models
+    // For each row (subdataset+frequency+sparsity combo), rank models
     const rankAccum = {};
     const rankCount = {};
     DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
@@ -976,7 +1104,7 @@ function computeRankOverTime(rows) {
 }
 
 function computeRawOverTime(rows) {
-  // Average raw values across (subdataset, frequency) for each (model, cutoff)
+  // Average raw values across (subdataset, frequency, sparsity_level) for each (model, cutoff)
   const grouped = {};
   rows.forEach(r => {
     const key = r.cutoff;
@@ -1205,13 +1333,13 @@ function renderTable() {
     return;
   }
 
-  // Find the latest cutoff per (subdataset, frequency) and show all
+  // Latest cutoff for current filters; one row per slice
   const cutoffs = [...new Set(rows.map(r => r.cutoff))].sort();
   const latestCutoff = cutoffs[cutoffs.length - 1];
   const latestRows = rows.filter(r => r.cutoff === latestCutoff);
 
   // Build header
-  let headHtml = '<tr><th>Dataset / Freq</th>';
+  let headHtml = '<tr><th>Dataset / Freq / Sparsity</th>';
   DATA.models.forEach((m, i) => {
     const arrow = state.sortCol === m ? (state.sortDir === 'asc' ? '▲' : '▼') : '▲';
     const sorted = state.sortCol === m ? ' sorted' : '';
@@ -1222,7 +1350,7 @@ function renderTable() {
 
   // Compute display rows
   let displayRows = latestRows.map(r => {
-    const label = r.subdataset + ' / ' + r.frequency;
+    const label = r.subdataset + ' / ' + r.frequency + ' / ' + (r.sparsity_level ?? 'default');
     const vals = {};
     DATA.models.forEach(m => { vals[m] = r.values[m]; });
     return { label, vals };
@@ -1291,7 +1419,7 @@ function computeChampionshipPoints(metricKey) {
     byCutoff[r.cutoff].push(r);
   });
 
-  // For each cutoff, compute average rank across all (subdataset, frequency) groups
+  // For each cutoff, compute average rank across all (subdataset, frequency, sparsity) groups
   const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
   // weeklyPoints: model → [points per cutoff]
   const cumPoints = {};
@@ -1607,6 +1735,81 @@ function setupSelect(selectId, stateKey) {
   });
 }
 
+function sortSparsityLevels(levels) {
+  const order = { low: 0, medium: 1, high: 2 };
+  return [...levels].sort((a, b) => {
+    const oa = order[String(a).toLowerCase()];
+    const ob = order[String(b).toLowerCase()];
+    const na = oa !== undefined ? oa : 100;
+    const nb = ob !== undefined ? ob : 100;
+    if (na !== nb) return na - nb;
+    return String(a).localeCompare(String(b));
+  });
+}
+
+function populateSparsityLevelOptions() {
+  const sel = document.getElementById('sparsityLevelFilter');
+  if (!sel) return;
+  const levels = sortSparsityLevels(DATA.sparsity_levels || []);
+  while (sel.options.length > 1) {
+    sel.remove(1);
+  }
+  levels.forEach(lv => {
+    const o = document.createElement('option');
+    o.value = lv;
+    o.textContent = lv;
+    sel.appendChild(o);
+  });
+}
+
+function updateCrpsMetricTooltips() {
+  const main = document.getElementById('mainMetricCrpsHelp');
+  const champ = document.getElementById('champMetricCrpsHelp');
+  const heat = document.getElementById('heatmapMetricCrpsHelp');
+  if (main) main.hidden = state.metric !== 'crps';
+  if (champ) champ.hidden = champMetric !== 'crps';
+  if (heat) heat.hidden = heatmapMetric !== 'crps';
+}
+
+const CRPS_TOAST_VISIBLE_MS = 6000;
+let crpsToastHideTimer = null;
+let crpsToastSeq = 0;
+
+function showCrpsToast() {
+  const el = document.getElementById('crpsToast');
+  if (!el) return;
+  const seq = ++crpsToastSeq;
+  clearTimeout(crpsToastHideTimer);
+  el.hidden = false;
+  el.classList.remove('crps-toast--visible');
+  void el.offsetWidth;
+  requestAnimationFrame(() => {
+    if (seq !== crpsToastSeq) return;
+    el.classList.add('crps-toast--visible');
+  });
+  crpsToastHideTimer = setTimeout(() => {
+    if (seq !== crpsToastSeq) return;
+    el.classList.remove('crps-toast--visible');
+    const onEnd = (e) => {
+      if (e.propertyName !== 'opacity') return;
+      if (seq !== crpsToastSeq) return;
+      el.removeEventListener('transitionend', onEnd);
+      el.hidden = true;
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(() => {
+      if (seq !== crpsToastSeq) return;
+      if (!el.classList.contains('crps-toast--visible')) el.hidden = true;
+    }, 500);
+  }, CRPS_TOAST_VISIBLE_MS);
+}
+
+function setupCrpsToastTriggers() {
+  document.querySelectorAll('.crps-warning-open').forEach(btn => {
+    btn.addEventListener('click', () => showCrpsToast());
+  });
+}
+
 // ===========================================================================
 // THEME TOGGLE
 // ===========================================================================
@@ -1651,9 +1854,15 @@ function init() {
 
   renderSummaryCards();
   setupPillGroup('metricToggle', 'metric');
+  document.getElementById('metricToggle').addEventListener('click', () => {
+    updateCrpsMetricTooltips();
+    if (state.metric === 'crps') showCrpsToast();
+  });
   setupPillGroup('viewToggle', 'view');
   setupSelect('subdatasetFilter', 'subdataset');
   setupSelect('frequencyFilter', 'frequency');
+  populateSparsityLevelOptions();
+  setupSelect('sparsityLevelFilter', 'sparsity_level');
   renderChart();
   renderTable();
 
@@ -1662,6 +1871,8 @@ function init() {
     champMetric = val;
     renderChampChart();
     renderChampStandings();
+    updateCrpsMetricTooltips();
+    if (val === 'crps') showCrpsToast();
   });
   renderChampChart();
   renderChampStandings();
@@ -1670,8 +1881,13 @@ function init() {
   setupPillGroup('heatmapMetricToggle', null, function(val) {
     heatmapMetric = val;
     renderHeatmap();
+    updateCrpsMetricTooltips();
+    if (val === 'crps') showCrpsToast();
   });
   renderHeatmap();
+
+  updateCrpsMetricTooltips();
+  setupCrpsToastTriggers();
 
   // Force Chart.js to recalculate legend layout after initial paint
   requestAnimationFrame(() => {

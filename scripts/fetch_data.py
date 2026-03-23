@@ -37,12 +37,25 @@ def normalize_cutoffs(df):
     return df
 
 
+def sort_sparsity_levels(levels):
+    """Order low → medium → high; other labels after, alphabetically."""
+    order = {"low": 0, "medium": 1, "high": 2}
+
+    def sort_key(x):
+        s = str(x).lower()
+        return (order.get(s, 100), s)
+
+    return sorted(levels, key=sort_key)
+
+
 def build_records(df, metric_name):
     """Convert rows for a given metric into the leaderboard record format."""
     subset = df[df["metric"] == metric_name]
     records = []
 
-    for (sub, freq, cut), grp in subset.groupby(["subdataset", "frequency", "cutoff"]):
+    for (sub, freq, sparse, cut), grp in subset.groupby(
+        ["subdataset", "frequency", "sparsity_level", "cutoff"]
+    ):
         values = {}
         for _, row in grp.iterrows():
             v = row["value"]
@@ -53,11 +66,14 @@ def build_records(df, metric_name):
         records.append({
             "subdataset": sub,
             "frequency": freq,
+            "sparsity_level": sparse,
             "cutoff": cut,
             "values": values,
         })
 
-    records.sort(key=lambda e: (e["subdataset"], e["frequency"], e["cutoff"]))
+    records.sort(
+        key=lambda e: (e["subdataset"], e["frequency"], e["sparsity_level"], e["cutoff"])
+    )
     return records
 
 
@@ -137,6 +153,9 @@ def main():
 
     df = fetch_parquet()
     df = normalize_cutoffs(df)
+    if "sparsity_level" not in df.columns:
+        df = df.copy()
+        df["sparsity_level"] = "default"
 
     # Derive dimensions from data
     models = sorted(df["model_alias"].unique().tolist())
@@ -165,6 +184,9 @@ def main():
     cutoffs = sorted(set(r["cutoff"] for r in all_records))
     subdatasets = sorted(set(r["subdataset"] for r in all_records))
     frequencies = sorted(set(r["frequency"] for r in all_records))
+    sparsity_levels = sort_sparsity_levels(
+        set(r["sparsity_level"] for r in all_records)
+    )
 
     summary = compute_summary(mase_records, crps_records, models)
 
@@ -173,6 +195,7 @@ def main():
         "cutoffs": cutoffs,
         "subdatasets": subdatasets,
         "frequencies": frequencies,
+        "sparsity_levels": sparsity_levels,
         "mase": mase_records,
         "crps": crps_records,
         "summary": summary,
