@@ -327,6 +327,32 @@ a.meta-tag-link:hover {
 .model-family-legend .model-family-pill {
   margin-left: 0;
 }
+.model-family-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background var(--transition-interactive), border-color var(--transition-interactive);
+}
+.model-family-filter:hover {
+  background: var(--color-surface);
+}
+.model-family-filter.is-active {
+  background: var(--color-surface-2);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+.model-family-filter[data-family="all"].is-active {
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
 .th-model-wrap {
   display: inline-flex;
   align-items: center;
@@ -951,14 +977,21 @@ td.best-value {
     </div>
   </div>
 
-  <div class="model-family-legend" role="note" aria-label="Model categories">
+  <div class="model-family-legend" role="toolbar" aria-label="Filter by model type">
     <span class="model-family-legend__label">Model type</span>
-    <span class="model-family-pill model-family-pill--foundation" title="Neural foundation models">F</span>
-    <span>Foundation</span>
-    <span class="model-family-pill model-family-pill--statistical" title="Classical / auto statistical (ARIMA, ETS, Prophet, …)">S</span>
-    <span>Statistical</span>
-    <span class="model-family-pill model-family-pill--baseline" title="Seasonal Naive, Historic Average, Zero">B</span>
-    <span>Baseline</span>
+    <button type="button" class="model-family-filter is-active" data-family="all" title="Show all models">All</button>
+    <button type="button" class="model-family-filter" data-family="foundation" title="Neural foundation models only">
+      <span class="model-family-pill model-family-pill--foundation" aria-hidden="true">F</span>
+      <span>Foundation</span>
+    </button>
+    <button type="button" class="model-family-filter" data-family="statistical" title="Classical / auto statistical (ARIMA, ETS, Prophet, …) only">
+      <span class="model-family-pill model-family-pill--statistical" aria-hidden="true">S</span>
+      <span>Statistical</span>
+    </button>
+    <button type="button" class="model-family-filter" data-family="baseline" title="Seasonal Naive, Historic Average, Zero only">
+      <span class="model-family-pill model-family-pill--baseline" aria-hidden="true">B</span>
+      <span>Baseline</span>
+    </button>
   </div>
 
   <div class="chart-wrapper">
@@ -1114,6 +1147,11 @@ function modelFamilyBadgeHtml(model) {
   return `<span class="model-family-pill model-family-pill--${f}" title="${modelFamilyTitle(f)}">${letter}</span>`;
 }
 
+function getVisibleModels() {
+  if (!state.familyFilter || state.familyFilter === 'all') return DATA.models.slice();
+  return DATA.models.filter(m => getModelFamily(m) === state.familyFilter);
+}
+
 // ===========================================================================
 // STATE
 // ===========================================================================
@@ -1123,6 +1161,7 @@ let state = {
   subdataset: 'stars',
   frequency: 'daily',
   sparsity_level: 'low',
+  familyFilter: 'all',
   sortCol: null,
   sortDir: 'asc'
 };
@@ -1168,9 +1207,9 @@ function filterData(metricKey) {
   });
 }
 
-function computeRankOverTime(rows) {
-  // Group by cutoff → within each (subdataset, frequency, sparsity_level, cutoff), rank models
-  // Then average ranks across groups per (model, cutoff)
+function computeRankOverTime(rows, modelsSubset) {
+  const models = modelsSubset && modelsSubset.length ? modelsSubset : DATA.models;
+  // Group by cutoff → within each slice, rank only among modelsSubset
   const grouped = {};
   rows.forEach(r => {
     const key = r.cutoff;
@@ -1178,29 +1217,26 @@ function computeRankOverTime(rows) {
     grouped[key].push(r);
   });
 
-  const result = {}; // model → [{cutoff, rank}]
-  DATA.models.forEach(m => { result[m] = {}; });
+  const result = {};
+  models.forEach(m => { result[m] = {}; });
 
   Object.keys(grouped).forEach(cutoff => {
     const groupRows = grouped[cutoff];
-    // For each row (subdataset+frequency+sparsity combo), rank models
     const rankAccum = {};
     const rankCount = {};
-    DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
+    models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
 
     groupRows.forEach(row => {
-      const vals = DATA.models.map(m => ({ model: m, val: row.values[m] }))
+      const vals = models.map(m => ({ model: m, val: row.values[m] }))
         .filter(x => x.val !== null && x.val !== undefined);
-      // Sort ascending (lower is better)
       vals.sort((a, b) => a.val - b.val);
-      // Assign ranks (1-based, no ties handling for simplicity)
       vals.forEach((x, idx) => {
         rankAccum[x.model] += (idx + 1);
         rankCount[x.model] += 1;
       });
     });
 
-    DATA.models.forEach(m => {
+    models.forEach(m => {
       if (rankCount[m] > 0) {
         result[m][cutoff] = rankAccum[m] / rankCount[m];
       }
@@ -1210,8 +1246,8 @@ function computeRankOverTime(rows) {
   return result;
 }
 
-function computeRawOverTime(rows) {
-  // Average raw values across (subdataset, frequency, sparsity_level) for each (model, cutoff)
+function computeRawOverTime(rows, modelsSubset) {
+  const models = modelsSubset && modelsSubset.length ? modelsSubset : DATA.models;
   const grouped = {};
   rows.forEach(r => {
     const key = r.cutoff;
@@ -1220,16 +1256,16 @@ function computeRawOverTime(rows) {
   });
 
   const result = {};
-  DATA.models.forEach(m => { result[m] = {}; });
+  models.forEach(m => { result[m] = {}; });
 
   Object.keys(grouped).forEach(cutoff => {
     const groupRows = grouped[cutoff];
     const sum = {};
     const count = {};
-    DATA.models.forEach(m => { sum[m] = 0; count[m] = 0; });
+    models.forEach(m => { sum[m] = 0; count[m] = 0; });
 
     groupRows.forEach(row => {
-      DATA.models.forEach(m => {
+      models.forEach(m => {
         const v = row.values[m];
         if (v !== null && v !== undefined) {
           sum[m] += v;
@@ -1238,7 +1274,7 @@ function computeRawOverTime(rows) {
       });
     });
 
-    DATA.models.forEach(m => {
+    models.forEach(m => {
       if (count[m] > 0) {
         result[m][cutoff] = sum[m] / count[m];
       }
@@ -1284,12 +1320,25 @@ function formatCutoff(c) {
   return months[parseInt(parts[1])-1] + ' ' + parseInt(parts[2]);
 }
 
+function pruneSortColIfNeeded() {
+  const vis = new Set(getVisibleModels());
+  if (state.sortCol && !vis.has(state.sortCol)) state.sortCol = null;
+}
+
 function renderChart() {
   const rows = filterData(state.metric);
-  
+  const visible = getVisibleModels();
+
   // Get cutoffs that appear in filtered data
   const cutoffSet = new Set(rows.map(r => r.cutoff));
   const cutoffs = DATA.cutoffs.filter(c => cutoffSet.has(c));
+
+  if (visible.length === 0) {
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = null;
+    document.getElementById('chartNote').textContent = 'No models match this model-type filter.';
+    return;
+  }
 
   let modelData;
   let isRank = state.view === 'rank';
@@ -1298,12 +1347,12 @@ function renderChart() {
   let cappedInfo = null;
 
   if (isRank) {
-    modelData = computeRankOverTime(rows);
+    modelData = computeRankOverTime(rows, visible);
     yLabel = 'Average Rank';
-    noteText = 'Lower rank is better (1 = best). Click legend items to show/hide models.';
+    noteText = 'Lower rank is better (1 = best among shown models). Click legend items to show/hide series.';
     reverseY = true;
   } else {
-    modelData = computeRawOverTime(rows);
+    modelData = computeRawOverTime(rows, visible);
     yLabel = state.metric === 'mase' ? 'Average MASE' : 'Average SCALED_CRPS';
     
     // For CRPS, check if values are extreme
@@ -1316,15 +1365,20 @@ function renderChart() {
         modelData = cappedInfo.data;
         noteText = `Values capped at ~${cappedInfo.cap.toExponential(1)} (95th percentile) to handle outliers. Click legend to toggle models.`;
       } else {
-        noteText = 'Lower is better. Click legend items to show/hide models.';
+        noteText = 'Lower is better. Click legend items to show/hide series.';
       }
     } else {
-      noteText = 'Lower is better. Click legend items to show/hide models.';
+      noteText = 'Lower is better. Click legend items to show/hide series.';
     }
   }
 
-  const datasets = DATA.models.map((m, i) => {
-    const color = getColor(i);
+  if (state.familyFilter !== 'all') {
+    noteText += ' Showing selected model type only.';
+  }
+
+  const datasets = visible.map((m) => {
+    const origIdx = DATA.models.indexOf(m);
+    const color = getColor(origIdx);
     const points = cutoffs.map(c => modelData[m][c] !== undefined ? modelData[m][c] : null);
     return {
       label: `${m} [${modelFamilyShort(m)}]`,
@@ -1434,8 +1488,15 @@ function renderChart() {
 // ===========================================================================
 function renderTable() {
   const rows = filterData(state.metric);
+  pruneSortColIfNeeded();
+  const visible = getVisibleModels();
   if (rows.length === 0) {
     document.getElementById('tableHead').innerHTML = '<tr><th>No data</th></tr>';
+    document.getElementById('tableBody').innerHTML = '';
+    return;
+  }
+  if (visible.length === 0) {
+    document.getElementById('tableHead').innerHTML = '<tr><th>No models for this type filter</th></tr>';
     document.getElementById('tableBody').innerHTML = '';
     return;
   }
@@ -1447,7 +1508,7 @@ function renderTable() {
 
   // Build header
   let headHtml = '<tr><th>Dataset / Freq / Sparsity</th>';
-  DATA.models.forEach((m, i) => {
+  visible.forEach((m, i) => {
     const arrow = state.sortCol === m ? (state.sortDir === 'asc' ? '▲' : '▼') : '▲';
     const sorted = state.sortCol === m ? ' sorted' : '';
     headHtml += `<th class="${sorted}" data-model="${m}"><span class="th-model-wrap">${m}${modelFamilyBadgeHtml(m)}</span> <span class="sort-arrow">${arrow}</span></th>`;
@@ -1459,7 +1520,7 @@ function renderTable() {
   let displayRows = latestRows.map(r => {
     const label = r.subdataset + ' / ' + r.frequency + ' / ' + (r.sparsity_level ?? 'default');
     const vals = {};
-    DATA.models.forEach(m => { vals[m] = r.values[m]; });
+    visible.forEach(m => { vals[m] = r.values[m]; });
     return { label, vals };
   });
 
@@ -1477,16 +1538,16 @@ function renderTable() {
   // Render rows
   let bodyHtml = '';
   displayRows.forEach(r => {
-    // Find best (lowest non-null) value
-    const numVals = DATA.models.map(m => r.vals[m]).filter(v => v !== null && v !== undefined);
-    const bestVal = Math.min(...numVals);
+    // Find best (lowest non-null) value among visible columns
+    const numVals = visible.map(m => r.vals[m]).filter(v => v !== null && v !== undefined);
+    const bestVal = numVals.length ? Math.min(...numVals) : null;
 
     bodyHtml += '<tr>';
     bodyHtml += `<td>${r.label}</td>`;
-    DATA.models.forEach(m => {
+    visible.forEach(m => {
       const v = r.vals[m];
       let cls = '';
-      if (v !== null && v !== undefined && v === bestVal) cls = ' class="best-value"';
+      if (bestVal !== null && v !== null && v !== undefined && v === bestVal) cls = ' class="best-value"';
       bodyHtml += `<td${cls}>${v !== null && v !== undefined ? v.toFixed(3) : '—'}</td>`;
     });
     bodyHtml += '</tr>';
@@ -1516,7 +1577,7 @@ let champMetric = 'mase';
 
 function computeChampionshipPoints(metricKey) {
   const src = metricKey === 'mase' ? DATA.mase : DATA.crps;
-  const champModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  const champModels = getVisibleModels().filter(m => !/ZeroModel/i.test(m));
   const nModels = champModels.length;
 
   // Group all rows by cutoff
@@ -1528,6 +1589,9 @@ function computeChampionshipPoints(metricKey) {
 
   // For each cutoff, compute average rank across all (subdataset, frequency, sparsity) groups
   const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
+  if (nModels === 0) {
+    return { cutoffs: [], cumPoints: {} };
+  }
   // weeklyPoints: model → [points per cutoff]
   const cumPoints = {};
   champModels.forEach(m => { cumPoints[m] = []; });
@@ -1575,13 +1639,19 @@ function renderChampChart() {
   const labels = cutoffs.map(formatCutoff);
 
   // Sort models by final points (descending) for legend order
-  const champModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  const champModels = getVisibleModels().filter(m => !/ZeroModel/i.test(m));
   const finalPoints = {};
   champModels.forEach(m => {
     const pts = cumPoints[m];
     finalPoints[m] = pts[pts.length - 1] || 0;
   });
   const sortedModels = champModels.slice().sort((a, b) => finalPoints[b] - finalPoints[a]);
+
+  if (sortedModels.length === 0) {
+    if (champChartInstance) champChartInstance.destroy();
+    champChartInstance = null;
+    return;
+  }
 
   const datasets = sortedModels.map((m, i) => {
     const origIdx = DATA.models.indexOf(m);
@@ -1658,9 +1728,14 @@ function renderChampChart() {
 // ===========================================================================
 function renderChampStandings() {
   const { cutoffs, cumPoints } = computeChampionshipPoints(champMetric);
-  const champModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  const champModels = getVisibleModels().filter(m => !/ZeroModel/i.test(m));
   const nModels = champModels.length;
   const nCutoffs = cutoffs.length;
+
+  if (nModels === 0) {
+    document.getElementById('standingsBody').innerHTML = '<tr><td colspan="7">No models match this type filter.</td></tr>';
+    return;
+  }
 
   // Compute per-model stats
   const stats = champModels.map(m => {
@@ -1715,7 +1790,8 @@ let heatmapMetric = 'mase';
 function heatmapColor(rank, nModels) {
   // rank goes from 1 (best) to nModels (worst)
   // Map to a violet gradient: rank 1 → deep violet, rank nModels → warm rose
-  const t = (rank - 1) / (nModels - 1); // 0 = best, 1 = worst
+  const denom = Math.max(1, nModels - 1);
+  const t = (rank - 1) / denom; // 0 = best, 1 = worst
   // Color stops: #4527A0 (best) → #7C4DFF → #D1B3FF → #FF8A65 → #D32F6B (worst)
   const stops = [
     { r: 69, g: 39, b: 160 },     // #4527A0
@@ -1735,14 +1811,22 @@ function heatmapColor(rank, nModels) {
 }
 
 function textColorForBg(rank, nModels) {
-  const t = (rank - 1) / (nModels - 1);
+  const denom = Math.max(1, nModels - 1);
+  const t = (rank - 1) / denom;
   // White text for dark cells (first ~35% and last ~20%), dark text for light cells (middle)
   return t < 0.35 || t > 0.80 ? '#ffffff' : '#1E1333';
 }
 
 function renderHeatmap() {
   const src = heatmapMetric === 'mase' ? DATA.mase : DATA.crps;
-  const nModels = DATA.models.length;
+  const visible = getVisibleModels();
+  const nModels = visible.length;
+
+  if (nModels === 0) {
+    document.getElementById('heatmapTable').innerHTML =
+      '<tbody><tr><td colspan="99">No models match this type filter.</td></tr></tbody>';
+    return;
+  }
 
   // Group by cutoff
   const byCutoff = {};
@@ -1752,18 +1836,18 @@ function renderHeatmap() {
   });
   const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
 
-  // Compute avg rank per model per cutoff
+  // Compute avg rank per model per cutoff (ranks among visible models only)
   const avgRanks = {}; // model → {cutoff → avgRank}
-  DATA.models.forEach(m => { avgRanks[m] = {}; });
+  visible.forEach(m => { avgRanks[m] = {}; });
 
   cutoffs.forEach(cutoff => {
     const groupRows = byCutoff[cutoff];
     const rankAccum = {};
     const rankCount = {};
-    DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
+    visible.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
 
     groupRows.forEach(row => {
-      const vals = DATA.models.map(m => ({ model: m, val: row.values[m] }))
+      const vals = visible.map(m => ({ model: m, val: row.values[m] }))
         .filter(x => x.val !== null && x.val !== undefined);
       vals.sort((a, b) => a.val - b.val);
       vals.forEach((x, idx) => {
@@ -1772,18 +1856,18 @@ function renderHeatmap() {
       });
     });
 
-    DATA.models.forEach(m => {
+    visible.forEach(m => {
       avgRanks[m][cutoff] = rankCount[m] > 0 ? rankAccum[m] / rankCount[m] : null;
     });
   });
 
   // Sort models by their overall average rank (best first)
   const overallAvg = {};
-  DATA.models.forEach(m => {
+  visible.forEach(m => {
     const vals = cutoffs.map(c => avgRanks[m][c]).filter(v => v !== null);
     overallAvg[m] = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 99;
   });
-  const sortedModels = DATA.models.slice().sort((a, b) => overallAvg[a] - overallAvg[b]);
+  const sortedModels = visible.slice().sort((a, b) => overallAvg[a] - overallAvg[b]);
 
   // Build HTML table
   let html = '<thead><tr><th>Model</th>';
@@ -1922,6 +2006,30 @@ function setupCrpsToastTriggers() {
   });
 }
 
+function updateModelFamilyFilterUI() {
+  document.querySelectorAll('.model-family-filter').forEach(btn => {
+    const fam = btn.getAttribute('data-family');
+    const active = state.familyFilter === 'all' ? fam === 'all' : state.familyFilter === fam;
+    btn.classList.toggle('is-active', active);
+  });
+}
+
+function setupModelFamilyFilters() {
+  document.querySelectorAll('.model-family-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fam = btn.getAttribute('data-family');
+      state.familyFilter = fam === 'all' ? 'all' : fam;
+      pruneSortColIfNeeded();
+      updateModelFamilyFilterUI();
+      renderChart();
+      renderTable();
+      renderChampChart();
+      renderChampStandings();
+      renderHeatmap();
+    });
+  });
+}
+
 // ===========================================================================
 // THEME TOGGLE
 // ===========================================================================
@@ -1975,6 +2083,8 @@ function init() {
   setupSelect('frequencyFilter', 'frequency');
   populateSparsityLevelOptions();
   setupSelect('sparsityLevelFilter', 'sparsity_level');
+  setupModelFamilyFilters();
+  updateModelFamilyFilterUI();
   renderChart();
   renderTable();
 
