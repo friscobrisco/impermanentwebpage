@@ -762,6 +762,10 @@ td.best-value {
         <option value="weekly">weekly</option>
       </select>
     </div>
+    <div class="control-group">
+      <span class="control-label">Sparsity</span>
+      <select class="control-select" id="sparsityFilter"></select>
+    </div>
   </div>
 
   <div class="chart-wrapper">
@@ -896,9 +900,37 @@ let state = {
   view: 'rank',
   subdataset: 'stars',
   frequency: 'daily',
+  sparsity_level: 'low',
   sortCol: null,
   sortDir: 'asc'
 };
+
+const SPARSITY_UI_ORDER = ['low', 'medium', 'high'];
+
+function rowSparsity(r) {
+  return r.sparsity_level !== undefined && r.sparsity_level !== null
+    ? String(r.sparsity_level)
+    : 'low';
+}
+
+/** Display label: low, medium, high (ordered in UI as low → medium → high). */
+function formatSparsityDisplay(raw) {
+  const k = String(raw).toLowerCase();
+  if (k === 'low') return 'low';
+  if (k === 'medium' || k === 'mid' || k === 'midium') return 'medium';
+  if (k === 'high') return 'high';
+  return String(raw);
+}
+
+function sortSparsityLevelsForUi(levels) {
+  const set = new Set(levels.map(l => String(l)));
+  const out = [];
+  SPARSITY_UI_ORDER.forEach(k => {
+    if (set.has(k)) out.push(k);
+  });
+  const rest = [...set].filter(k => !SPARSITY_UI_ORDER.includes(k)).sort();
+  return out.concat(rest);
+}
 
 // ===========================================================================
 // SUMMARY CARDS
@@ -943,12 +975,13 @@ function filterData(metricKey) {
   return src.filter(r => {
     if (state.subdataset !== 'all' && r.subdataset !== state.subdataset) return false;
     if (state.frequency !== 'all' && r.frequency !== state.frequency) return false;
+    if (state.sparsity_level !== 'all' && rowSparsity(r) !== state.sparsity_level) return false;
     return true;
   });
 }
 
 function computeRankOverTime(rows) {
-  // Group by cutoff → within each (subdataset, frequency, cutoff), rank models
+  // Group by cutoff → within each (subdataset, frequency, sparsity, cutoff), rank models
   // Then average ranks across groups per (model, cutoff)
   const grouped = {};
   rows.forEach(r => {
@@ -962,7 +995,7 @@ function computeRankOverTime(rows) {
 
   Object.keys(grouped).forEach(cutoff => {
     const groupRows = grouped[cutoff];
-    // For each row (subdataset+frequency combo), rank models
+    // For each row (subdataset+frequency+sparsity combo), rank models
     const rankAccum = {};
     const rankCount = {};
     DATA.models.forEach(m => { rankAccum[m] = 0; rankCount[m] = 0; });
@@ -990,7 +1023,7 @@ function computeRankOverTime(rows) {
 }
 
 function computeRawOverTime(rows) {
-  // Average raw values across (subdataset, frequency) for each (model, cutoff)
+  // Average raw values across (subdataset, frequency, sparsity) for each (model, cutoff)
   const grouped = {};
   rows.forEach(r => {
     const key = r.cutoff;
@@ -1260,13 +1293,13 @@ function renderTable() {
     return;
   }
 
-  // Find the latest cutoff per (subdataset, frequency) and show all
+  // Find the latest cutoff for filtered rows and show all matching slices
   const cutoffs = [...new Set(rows.map(r => r.cutoff))].sort();
   const latestCutoff = cutoffs[cutoffs.length - 1];
   const latestRows = rows.filter(r => r.cutoff === latestCutoff);
 
   // Build header
-  let headHtml = '<tr><th>Dataset / Freq</th>';
+  let headHtml = '<tr><th>Dataset / Freq / Sparsity</th>';
   DATA.models.forEach((m, i) => {
     const arrow = state.sortCol === m ? (state.sortDir === 'asc' ? '▲' : '▼') : '▲';
     const sorted = state.sortCol === m ? ' sorted' : '';
@@ -1277,7 +1310,7 @@ function renderTable() {
 
   // Compute display rows
   let displayRows = latestRows.map(r => {
-    const label = r.subdataset + ' / ' + r.frequency;
+    const label = r.subdataset + ' / ' + r.frequency + ' / ' + formatSparsityDisplay(rowSparsity(r));
     const vals = {};
     DATA.models.forEach(m => { vals[m] = r.values[m]; });
     return { label, vals };
@@ -1346,7 +1379,7 @@ function computeChampionshipPoints(metricKey) {
     byCutoff[r.cutoff].push(r);
   });
 
-  // For each cutoff, compute average rank across all (subdataset, frequency) groups
+  // For each cutoff, compute average rank across all (subdataset, frequency, sparsity) groups
   const cutoffs = DATA.cutoffs.filter(c => byCutoff[c]);
   // weeklyPoints: model → [points per cutoff]
   const cumPoints = {};
@@ -1693,6 +1726,28 @@ function setupSelect(selectId, stateKey) {
   });
 }
 
+function populateSparsityFilter() {
+  const sel = document.getElementById('sparsityFilter');
+  const levels = sortSparsityLevelsForUi(DATA.sparsity_levels || []);
+  sel.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = 'all';
+  optAll.textContent = 'All levels';
+  sel.appendChild(optAll);
+  levels.forEach(l => {
+    const o = document.createElement('option');
+    const s = String(l);
+    o.value = s;
+    o.textContent = formatSparsityDisplay(s);
+    sel.appendChild(o);
+  });
+  const levelStrs = levels.map(l => String(l));
+  if (state.sparsity_level !== 'all' && !levelStrs.includes(String(state.sparsity_level))) {
+    state.sparsity_level = levelStrs.includes('low') ? 'low' : 'all';
+  }
+  sel.value = state.sparsity_level;
+}
+
 // ===========================================================================
 // THEME TOGGLE
 // ===========================================================================
@@ -1740,6 +1795,8 @@ function init() {
   setupPillGroup('viewToggle', 'view');
   setupSelect('subdatasetFilter', 'subdataset');
   setupSelect('frequencyFilter', 'frequency');
+  populateSparsityFilter();
+  setupSelect('sparsityFilter', 'sparsity_level');
   renderChart();
   renderTable();
 
