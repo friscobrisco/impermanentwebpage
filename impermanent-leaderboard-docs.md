@@ -181,7 +181,7 @@ Rank 12 (worst) → #D32F6B (rose)
 
 ### 3.6 Summary Cards
 
-The top 3 models are displayed as podium cards with gold/silver/bronze medals. **ZeroModel is excluded** — the cards show the top 3 non-baseline models by combined average rank (average of MASE rank and CRPS rank).
+The top 3 models are displayed as podium cards with gold/silver/bronze medals. **ZeroModel is excluded** — the cards show the top 3 non-baseline models by **cumulative championship points** (MASE-based, same as the Championship Points race). Each card has three metric boxes in the same style: **Total Pts** (cumulative championship points), **Avg MASE**, and **Avg CRPS**.
 
 ---
 
@@ -282,7 +282,7 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 
 ## 7. Dashboard Sections
 
-1. **Summary Cards** — Top 3 non-baseline models with gold/silver/bronze medals, avg MASE and avg CRPS
+1. **Summary Cards** — Top 3 non-baseline models by championship points (MASE), with medals; metric boxes for Total Pts, Avg MASE, and Avg CRPS
 2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency/sparsity controls (all 12 models including ZeroModel)
 3. **Championship Points Race** — Cumulative F1-style points line chart with own metric toggle (ZeroModel excluded)
 4. **Championship Standings** — Leaderboard table with rank medals, total points, avg rank, best/worst week, and color-coded points bars (ZeroModel excluded)
