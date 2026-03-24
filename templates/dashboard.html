@@ -685,6 +685,50 @@ td.best-value {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* CRPS metric notice (toast, upper right) */
+.metric-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: min(380px, calc(100vw - 40px));
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+}
+.metric-toast.metric-toast--visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.metric-toast-inner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.metric-toast-warn {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.metric-toast-text { margin: 0; flex: 1; min-width: 0; }
+@media (max-width: 768px) {
+  .metric-toast {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+  }
+}
 </style>
 </head>
 <body>
@@ -856,6 +900,13 @@ td.best-value {
     <p>&copy; 2026 Out of the Blue Labs, Inc. All rights reserved.</p>
   </footer>
 
+</div>
+
+<div id="crpsMetricToast" class="metric-toast" role="status" aria-live="polite">
+  <div class="metric-toast-inner">
+    <span class="metric-toast-warn" aria-hidden="true" title="Warning">⚠️</span>
+    <p class="metric-toast-text">CRPS evaluates full predictive distributions. In intermittent count data, conservative forecasts (e.g., zero) can perform strongly.</p>
+  </div>
 </div>
 
 <script>
@@ -1699,6 +1750,26 @@ function renderHeatmap() {
 }
 
 // ===========================================================================
+// CRPS METRIC TOAST (main chart)
+// ===========================================================================
+let crpsMetricToastTimer = null;
+const CRPS_METRIC_TOAST_MS = 2000;
+
+function showCrpsMetricToast() {
+  const el = document.getElementById('crpsMetricToast');
+  if (!el) return;
+  if (crpsMetricToastTimer) {
+    clearTimeout(crpsMetricToastTimer);
+    crpsMetricToastTimer = null;
+  }
+  el.classList.add('metric-toast--visible');
+  crpsMetricToastTimer = setTimeout(() => {
+    el.classList.remove('metric-toast--visible');
+    crpsMetricToastTimer = null;
+  }, CRPS_METRIC_TOAST_MS);
+}
+
+// ===========================================================================
 // CONTROLS
 // ===========================================================================
 function setupPillGroup(groupId, stateKey, callback) {
@@ -1791,7 +1862,12 @@ function init() {
   }
 
   renderSummaryCards();
-  setupPillGroup('metricToggle', 'metric');
+  setupPillGroup('metricToggle', null, function(val) {
+    state.metric = val;
+    renderChart();
+    renderTable();
+    if (val === 'crps') showCrpsMetricToast();
+  });
   setupPillGroup('viewToggle', 'view');
   setupSelect('subdatasetFilter', 'subdataset');
   setupSelect('frequencyFilter', 'frequency');
