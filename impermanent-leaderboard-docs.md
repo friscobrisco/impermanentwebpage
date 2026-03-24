@@ -6,7 +6,7 @@ A visualization dashboard for the Impermanent time-series forecasting benchmark.
 
 **Stack:** Python data pipeline (`fetch_data.py` → `generate_html.py`) producing a single `index.html`, Chart.js (CDN), Inter font (Google Fonts), CSS custom properties for theming
 **Data source:** `s3://impermanent-benchmark/v0.1.0/gh-archive/evaluations/evaluation_results.parquet`
-**Data shape:** 12 models × 4 subdatasets × 4 frequencies × ~30 cutoff dates × 2 metrics
+**Data shape:** 12 models × 4 subdatasets × 3 frequencies × N sparsity levels × ~30 cutoff dates × 2 metrics
 **Theme:** White + violet accents (light/dark mode)
 
 ---
@@ -24,7 +24,8 @@ The parquet file contains evaluation results with the following columns:
 | Column | Type | Description |
 |--------|------|-------------|
 | `subdataset` | string | `issues_opened`, `prs_opened`, `pushes`, `stars` |
-| `frequency` | string | `daily`, `hourly`, `monthly`, `weekly` |
+| `frequency` | string | `daily`, `monthly`, `weekly` |
+| `sparsity_level` | string | Sparsity bucket (from source data); if the column is absent in parquet, the pipeline uses `low` |
 | `cutoff` | string | Date identifier, e.g. `2026-01-04` or `2026-01-04-00` |
 | `metric` | string | `mase` or `scaled_crps` |
 | `model_alias` | string | One of the 12 model names |
@@ -38,7 +39,7 @@ The parquet file contains evaluation results with the following columns:
 2. **Normalize cutoffs** — append `-00` to date-only cutoff strings for consistency
 3. **Filter to last 3 months** — only keep cutoffs within 90 days of the latest date
 4. **Clamp extreme values** — values with `abs(v) >= 1e6` are set to `0` (handles scientific notation outliers)
-5. **Build records** — restructure flat rows into `{subdataset, frequency, cutoff, values: {model: score}}` objects for both MASE and SCALED_CRPS
+5. **Build records** — restructure flat rows into `{subdataset, frequency, sparsity_level, cutoff, values: {model: score}}` objects for both MASE and SCALED_CRPS
 6. **Compute summary** — calculate per-model average metrics and average ranks, assign medal emojis to top 3
 7. **Write** `data/leaderboard.json`
 
@@ -77,9 +78,10 @@ const DATA = {
            "Prophet", "SeasonalNaive", "TiRex", "TimesFM", "ZeroModel"],
   cutoffs: ["2026-01-01-00", "2026-01-04-00", ..., "2026-03-14-00"],
   subdatasets: ["issues_opened", "prs_opened", "pushes", "stars"],
-  frequencies: ["daily", "hourly", "monthly", "weekly"],
+  frequencies: ["daily", "monthly", "weekly"],
+  sparsity_levels: ["low", "medium", "high", ...],  // pipeline/UI order
   mase: [
-    {subdataset: "issues_opened", frequency: "daily", cutoff: "2026-01-04-00",
+    {subdataset: "issues_opened", frequency: "daily", sparsity_level: "low", cutoff: "2026-01-04-00",
      values: {AutoARIMA: 0.426, AutoCES: 0.323, ...}},
     ...
   ],
@@ -253,7 +255,8 @@ let state = {
   metric: 'mase',       // mase | crps — main chart + table
   view: 'rank',         // rank | raw — main chart
   subdataset: 'all',    // all | issues_opened | prs_opened | pushes | stars
-  frequency: 'all',     // all | daily | hourly | monthly | weekly
+  frequency: 'all',     // all | daily | monthly | weekly
+  sparsity_level: 'low', // all | …values from DATA.sparsity_levels (defaults to low)
   sortCol: null,        // table column sort
   sortDir: 'asc'        // asc | desc
 };
@@ -269,6 +272,7 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 | View pill (rank/raw) | `renderChart()` + `renderTable()` |
 | Dataset dropdown | `renderChart()` + `renderTable()` |
 | Frequency dropdown | `renderChart()` + `renderTable()` |
+| Sparsity dropdown | `renderChart()` + `renderTable()` |
 | Champ metric pill | `renderChampChart()` + `renderChampStandings()` |
 | Heatmap metric pill | `renderHeatmap()` |
 | Theme toggle | All of the above |
@@ -279,7 +283,7 @@ let heatmapMetric = 'mase';  // separate toggle for heatmap
 ## 7. Dashboard Sections
 
 1. **Summary Cards** — Top 3 non-baseline models with gold/silver/bronze medals, avg MASE and avg CRPS
-2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency controls (all 12 models including ZeroModel)
+2. **Model Performance Over Time** — Line chart with metric/view/dataset/frequency/sparsity controls (all 12 models including ZeroModel)
 3. **Championship Points Race** — Cumulative F1-style points line chart with own metric toggle (ZeroModel excluded)
 4. **Championship Standings** — Leaderboard table with rank medals, total points, avg rank, best/worst week, and color-coded points bars (ZeroModel excluded)
 5. **Rank Stability Heatmap** — Color-coded grid of average rank per model per cutoff week
