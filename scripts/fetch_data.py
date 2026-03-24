@@ -41,10 +41,10 @@ def ensure_sparsity_level(df):
     """Ensure sparsity_level column exists; missing column or NaN → 'low'."""
     if "sparsity_level" not in df.columns:
         out = df.copy()
-        out["sparsity_level"] = "low"
+        out["sparsity_level"] = "unknown"
         return out
     out = df.copy()
-    out["sparsity_level"] = out["sparsity_level"].fillna("low").astype(str)
+    out["sparsity_level"] = out["sparsity_level"].fillna("unknown").astype(str)
     return out
 
 
