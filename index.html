@@ -830,6 +830,14 @@ td.best-value {
       <span class="control-label">Sparsity</span>
       <select class="control-select" id="sparsityFilter"></select>
     </div>
+    <div class="control-group">
+      <span class="control-label">Model Type</span>
+      <div class="pill-group" id="modelTypeToggle">
+        <button class="pill active" data-value="all">All</button>
+        <button class="pill" data-value="foundation">Foundation</button>
+        <button class="pill" data-value="classical">Classical</button>
+      </div>
+    </div>
   </div>
 
   <div class="chart-wrapper">
@@ -848,6 +856,14 @@ td.best-value {
       <div class="pill-group" id="champMetricToggle">
         <button class="pill active" data-value="mase">MASE</button>
         <button class="pill" data-value="crps">SCALED_CRPS</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Model Type</span>
+      <div class="pill-group" id="champModelTypeToggle">
+        <button class="pill active" data-value="all">All</button>
+        <button class="pill" data-value="foundation">Foundation</button>
+        <button class="pill" data-value="classical">Classical</button>
       </div>
     </div>
   </div>
@@ -973,8 +989,19 @@ let state = {
   frequency: 'daily',
   sparsity_level: 'low',
   sortCol: null,
-  sortDir: 'asc'
+  sortDir: 'asc',
+  modelType: 'all'
 };
+
+// Returns models filtered by type ('all', 'classical', 'foundation')
+function getFilteredModels(modelType) {
+  if (modelType === 'foundation') {
+    return DATA.models.filter(m => MODEL_CATEGORIES.foundation.has(m));
+  } else if (modelType === 'classical') {
+    return DATA.models.filter(m => !MODEL_CATEGORIES.foundation.has(m));
+  }
+  return DATA.models.slice(); // 'all'
+}
 
 const SPARSITY_UI_ORDER = ['low', 'medium', 'high'];
 
@@ -1210,9 +1237,10 @@ function renderChart() {
     }
   }
 
-  // Sort models by average performance (best first)
-  const modelAvgs = DATA.models.map(m => {
-    const vals = cutoffs.map(c => modelData[m][c]).filter(v => v !== undefined && v !== null);
+  // Sort models by average performance (best first), respecting model type filter
+  const filteredModels = getFilteredModels(state.modelType);
+  const modelAvgs = filteredModels.map(m => {
+    const vals = cutoffs.map(c => modelData[m] ? modelData[m][c] : undefined).filter(v => v !== undefined && v !== null);
     const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : Infinity;
     return { model: m, avg };
   });
@@ -1441,6 +1469,7 @@ function renderTable() {
 // ===========================================================================
 let champChartInstance = null;
 let champMetric = 'mase';
+let champModelType = 'all';
 
 function computeChampionshipPoints(metricKey) {
   const src = metricKey === 'mase' ? DATA.mase : DATA.crps;
@@ -1502,8 +1531,13 @@ function renderChampChart() {
   const { cutoffs, cumPoints } = computeChampionshipPoints(champMetric);
   const labels = cutoffs.map(formatCutoff);
 
-  // Sort models by final points (descending) for legend order
-  const champModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  // Sort models by final points (descending) for legend order, respecting model type filter
+  const allChampModels = DATA.models.filter(m => !/ZeroModel/i.test(m));
+  const champModels = champModelType === 'foundation'
+    ? allChampModels.filter(m => MODEL_CATEGORIES.foundation.has(m))
+    : champModelType === 'classical'
+      ? allChampModels.filter(m => !MODEL_CATEGORIES.foundation.has(m))
+      : allChampModels;
   const finalPoints = {};
   champModels.forEach(m => {
     const pts = cumPoints[m];
@@ -1900,12 +1934,26 @@ function init() {
   renderChart();
   renderTable();
 
+  // Main chart model type toggle
+  setupPillGroup('modelTypeToggle', null, function(val) {
+    state.modelType = val;
+    renderChart();
+  });
+
   // Championship Points metric toggle
   setupPillGroup('champMetricToggle', null, function(val) {
     champMetric = val;
     renderChampChart();
     renderChampStandings();
   });
+
+  // Championship model type toggle
+  setupPillGroup('champModelTypeToggle', null, function(val) {
+    champModelType = val;
+    renderChampChart();
+    renderChampStandings();
+  });
+
   renderChampChart();
   renderChampStandings();
 
